@@ -15,7 +15,7 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 ################ Set flags
 # do not move!
-CXXFLAGS="-O3 $CXXFLAGS"
+CXXFLAGS="$CXXFLAGS"
 
 ############### Checks for programs
 AC_PROG_CXX
