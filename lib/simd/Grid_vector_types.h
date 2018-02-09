@@ -59,7 +59,7 @@ directory
 #define GRID_VECTOR_TYPES
 
 #if defined GENSVE
-#include "Grid_gensve.h"
+#include "Grid_gen_sve.h"
 #else
 #include "Grid_generic.h"
 #endif
