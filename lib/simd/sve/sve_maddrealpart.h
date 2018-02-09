@@ -21,7 +21,10 @@
       typename acle<T>::vt re_v = svtrn1(a_v, a_v);
       typename acle<T>::vt r_v  = svmad_x(pg1, re_v, b_v, c_v);
 */
-      svst1(pg1, (typename acle<T>::pt*)&out.v, r_v);
+
+      // left over from Peter's overhaul ?
+      //svst1(pg1, (typename acle<T>::pt*)&out.v, r_v);
+      svst1(pg1, out.v, r_v);
 
       return out;
     }
