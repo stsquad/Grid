@@ -55,6 +55,7 @@ namespace Optimization {
   #endif
 
   #if defined(SVE_GROUP_V)
+  #pragma message("enabling SVE_GROUP_V")
   #define SVE_VSPLAT
   #define SVE_VSTORE
   #define SVE_VSTREAM
@@ -62,6 +63,7 @@ namespace Optimization {
   #endif
 
   #if defined(SVE_GROUP_ARITH)
+  #pragma message("enabling SVE_GROUP_ARITH")
   #define SVE_SUM
   #define SVE_SUB
   #define SVE_MULT
@@ -76,10 +78,12 @@ namespace Optimization {
   #endif
 
   #if defined(SVE_GROUP_PREC)
+  #pragma message("enabling SVE_GROUP_PREC")
 //  #define SVE_PREC
   #endif
 
   #if defined(SVE_GROUP_PERM)
+  #pragma message("enabling SVE_GROUP_PERM")
   #define SVE_ROTATE
   #define SVE_PERMUTE
   #define SVE_EXCHANGE
