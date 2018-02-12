@@ -19,6 +19,7 @@
 
     // specialization for SVE 512-bit vector length
     #if (GEN_SIMD_WIDTH == 64u)
+    #pragma message("specialize permute for 512 bit vector length")
 
     template <typename T>
     static inline vec<T> Permute1(const vec<T> &in) {
@@ -65,6 +66,7 @@
     }
 
     #else
+    #pragma message("generic permute")
 
     #define perm(l, n, w)\
     unsigned int _mask = w >> (n + 1);\

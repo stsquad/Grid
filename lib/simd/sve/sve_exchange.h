@@ -22,6 +22,7 @@
 
     // specialization for SVE 512-bit vector length
     #if (GEN_SIMD_WIDTH == 64u)
+    #pragma message("specialize exchange for 512 bit vector length")
 
     template <typename T>
     static inline void Exchange1(vec<T> &out1, vec<T> &out2, const vec<T> &in1, const vec<T> &in2){
@@ -71,6 +72,7 @@
     };
 
     #else
+    #pragma message("generic exchange")
 
     template <typename T,int n>
     static inline void ExchangeN(vec<T> &out1, vec<T> &out2, const vec<T> &in1, const vec<T> &in2){
