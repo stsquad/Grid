@@ -2,7 +2,7 @@
 #define SVE_SUM_H
 
 #pragma message("include sve_sum.h")
-
+/*
   struct Sum{
     template <typename T>
     inline vec<T> operator()(const vec<T> &a, const vec<T> &b){
@@ -16,8 +16,8 @@
 
       return out;
     }
+*/
 
-/*
   struct Sum{
     inline vecd operator()(const vecd &a, const vecd &b){
 
@@ -52,7 +52,7 @@
 
       return out;
     }
-*/
+
   };
 
 #endif

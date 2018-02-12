@@ -48,10 +48,18 @@ namespace Optimization {
   #include "sve/sve_acle.h"
 
   #if defined(SVE_FULL)
+  #ifndef SVE_GROUP_V
   #define SVE_GROUP_V
+  #endif
+  #ifndef SVE_GROUP_ARITH
   #define SVE_GROUP_ARITH
-  #define SVE_GROUP_PREC
+  #endif
+//  #ifndef SVE_GROUP_PREC
+//  #define SVE_GROUP_PREC
+//  #endif
+  #ifndef SVE_GROUP_PERM
   #define SVE_GROUP_PERM
+  #endif
   #endif
 
   #if defined(SVE_GROUP_V)
@@ -79,7 +87,7 @@ namespace Optimization {
 
   #if defined(SVE_GROUP_PREC)
   #pragma message("enabling SVE_GROUP_PREC")
-//  #define SVE_PREC
+  #define SVE_PREC
   #endif
 
   #if defined(SVE_GROUP_PERM)
