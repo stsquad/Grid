@@ -54,9 +54,35 @@ namespace Optimization {
   #ifndef SVE_GROUP_ARITH
   #define SVE_GROUP_ARITH
   #endif
-//  #ifndef SVE_GROUP_PREC
-//  #define SVE_GROUP_PREC
-//  #endif
+  #ifndef SVE_GROUP_PREC
+  #define SVE_GROUP_PREC
+  #endif
+  #ifndef SVE_GROUP_PERM
+  #define SVE_GROUP_PERM
+  #endif
+  #elif defined(SVE_FULL_SLS)
+  #ifndef SVE_GROUP_V
+  #define SVE_GROUP_V
+  #endif
+  #ifndef SVE_GROUP_ARITH_SLS
+  #define SVE_GROUP_ARITH_SLS
+  #endif
+  #ifndef SVE_GROUP_PREC
+  #define SVE_GROUP_PREC
+  #endif
+  #ifndef SVE_GROUP_PERM
+  #define SVE_GROUP_PERM
+  #endif
+  #elif defined(SVE_FULL_REF)
+  #ifndef SVE_GROUP_V
+  #define SVE_GROUP_V
+  #endif
+  #ifndef SVE_GROUP_ARITH_REF
+  #define SVE_GROUP_ARITH_REF
+  #endif
+  #ifndef SVE_GROUP_PREC
+  #define SVE_GROUP_PREC
+  #endif
   #ifndef SVE_GROUP_PERM
   #define SVE_GROUP_PERM
   #endif
@@ -72,7 +98,7 @@ namespace Optimization {
 
   #if defined(SVE_GROUP_ARITH)
   #pragma message("enabling SVE_GROUP_ARITH")
-  #define SVE_SUM
+//  #define SVE_SUM
   #define SVE_SUB
   #define SVE_MULT
   #define SVE_MULTREALPART
@@ -83,11 +109,37 @@ namespace Optimization {
   #define SVE_TIMESMINUSI
   #define SVE_TIMESI
   #define SVE_REDUCE
+  #elif defined(SVE_GROUP_ARITH_SLS)
+  #pragma message("enabling SVE_GROUP_ARITH_SLS")
+//  #define SVE_SUM
+  #define SVE_SUB
+  #define SVE_MULT
+  #define SVE_MULTREALPART_SLS
+  #define SVE_MADDREALPART_SLS
+  #define SVE_MULTCOMPLEX_SLS
+  #define SVE_DIV
+  #define SVE_CONJ_SLS
+  #define SVE_TIMESMINUSI_SLS
+  #define SVE_TIMESI_SLS
+  #define SVE_REDUCE
+  #elif defined(SVE_GROUP_ARITH_REF)
+  #pragma message("enabling SVE_GROUP_ARITH_REF")
+//  #define SVE_SUM_REF
+  #define SVE_SUB_REF
+  #define SVE_MULT_REF
+  #define SVE_MULTREALPART_REF
+  #define SVE_MADDREALPART_REF
+  #define SVE_MULTCOMPLEX_REF
+  #define SVE_DIV_REF
+  #define SVE_CONJ_REF
+  #define SVE_TIMESMINUSI_REF
+  #define SVE_TIMESI_REF
+  #define SVE_REDUCE_REF
   #endif
 
   #if defined(SVE_GROUP_PREC)
-  #pragma message("enabling SVE_GROUP_PREC")
-  #define SVE_PREC
+//  #pragma message("enabling SVE_GROUP_PREC")
+//  #define SVE_PREC
   #endif
 
   #if defined(SVE_GROUP_PERM)
@@ -199,7 +251,9 @@ namespace Optimization {
   // Arithmetic operations
   /////////////////////////////////////////////////////
 
-  #if defined(GENSVE) && defined(SVE_SUM)
+  #if defined(GENSVE) && defined(SVE_SUM_REF)
+  #include "sve/sve_sum_ref.h"
+  #elif defined(GENSVE) && defined(SVE_SUM)
   #include "sve/sve_sum.h"
   #else
 
@@ -220,7 +274,9 @@ namespace Optimization {
 
   #endif
 
-  #if defined(GENSVE) && defined(SVE_SUB)
+  #if defined(GENSVE) && defined(SVE_SUB_REF)
+  #include "sve/sve_sub_ref.h"
+  #elif defined(GENSVE) && defined(SVE_SUB)
   #include "sve/sve_sub.h"
   #else
 
@@ -241,7 +297,9 @@ namespace Optimization {
 
   #endif
 
-  #if defined(GENSVE) && defined(SVE_MULT)
+  #if defined(GENSVE) && defined(SVE_MULT_REF)
+  #include "sve/sve_mult_ref.h"
+  #elif defined(GENSVE) && defined(SVE_MULT)
   #include "sve/sve_mult.h"
   #else
 
@@ -262,8 +320,11 @@ namespace Optimization {
 
   #endif
 
-
-  #if defined(GENSVE) && defined(SVE_MULTREALPART)
+  #if defined(GENSVE) && defined(SVE_MULTREALPART_REF)
+  #include "sve/sve_multrealpart_ref.h"
+  #elif defined(GENSVE) && defined(SVE_MULTREALPART_SLS)
+  #include "sve/sve_multrealpart_sls.h"
+  #elif defined(GENSVE) && defined(SVE_MULTREALPART)
   #include "sve/sve_multrealpart.h"
   #else
 
@@ -283,8 +344,11 @@ namespace Optimization {
 
   #endif
 
-
-  #if defined(GENSVE) && defined(SVE_MADDREALPART)
+  #if defined(GENSVE) && defined(SVE_MADDREALPART_REF)
+  #include "sve/sve_maddrealpart_ref.h"
+  #elif defined(GENSVE) && defined(SVE_MADDREALPART_SLS)
+  #include "sve/sve_maddrealpart_sls.h"
+  #elif defined(GENSVE) && defined(SVE_MADDREALPART)
   #include "sve/sve_maddrealpart.h"
   #else
 
@@ -304,7 +368,11 @@ namespace Optimization {
 
   #endif
 
-  #if defined(GENSVE) && defined(SVE_MULTCOMPLEX)
+  #if defined(GENSVE) && defined(SVE_MULTCOMPLEX_REF)
+  #include "sve/sve_multcomplex_ref.h"
+  #elif defined(GENSVE) && defined(SVE_MULTCOMPLEX_SLS)
+  #include "sve/sve_multcomplex_sls.h"
+  #elif defined(GENSVE) && defined(SVE_MULTCOMPLEX)
   #include "sve/sve_multcomplex.h"
   #else
 
@@ -331,7 +399,9 @@ namespace Optimization {
 
   #endif
 
-  #if defined(GENSVE) && defined(SVE_DIV)
+  #if defined(GENSVE) && defined(SVE_DIV_REF)
+  #include "sve/sve_div_ref.h"
+  #elif defined(GENSVE) && defined(SVE_DIV)
   #include "sve/sve_div.h"
   #else
 
@@ -352,7 +422,11 @@ namespace Optimization {
 
   #endif
 
-  #if defined(GENSVE) && defined(SVE_CONJ)
+  #if defined(GENSVE) && defined(SVE_CONJ_REF)
+  #include "sve/sve_conj_ref.h"
+  #elif defined(GENSVE) && defined(SVE_CONJ_SLS)
+  #include "sve/sve_conj_sls.h"
+  #elif defined(GENSVE) && defined(SVE_CONJ)
   #include "sve/sve_conj.h"
   #else
 
@@ -379,7 +453,11 @@ namespace Optimization {
 
   #endif
 
-  #if defined(GENSVE) && defined(SVE_TIMESMINUSI)
+  #if defined(GENSVE) && defined(SVE_TIMESMINUSI_REF)
+  #include "sve/sve_timesminusi_ref.h"
+  #elif defined(GENSVE) && defined(SVE_TIMESMINUSI_SLS)
+  #include "sve/sve_timesminusi_sls.h"
+  #elif defined(GENSVE) && defined(SVE_TIMESMINUSI)
   #include "sve/sve_timesminusi.h"
   #else
 
@@ -406,7 +484,11 @@ namespace Optimization {
 
   #endif
 
-  #if defined(GENSVE) && defined(SVE_TIMESI)
+  #if defined(GENSVE) && defined(SVE_TIMESI_REF)
+  #include "sve/sve_timesi_ref.h"
+  #elif defined(GENSVE) && defined(SVE_TIMESI_SLS)
+  #include "sve/sve_timesi_sls.h"
+  #elif defined(GENSVE) && defined(SVE_TIMESI)
   #include "sve/sve_timesi.h"
   #else
 
