@@ -14,14 +14,14 @@
       typename acle<uint16_t>::vt ha_v = svcvt_f16_x(pg1s, sa_v);
       typename acle<uint16_t>::vt hb_v = svcvt_f16_x(pg1s, sb_v);
       typename acle<uint16_t>::vt r_v = svuzp1(ha_v, hb_v);
-      svst1(pg1h, ret.v, r_v);
+      svst1(pg1h, (typename acle<uint16_t>::pt*)&ret.v, r_v);
       return ret;
     }
     static inline void HtoS (const vech &h,vecf &sa,vecf &sb) {
 
       svbool_t pg1h = acle<uint16_t>::pg1();
       svbool_t pg1s = acle<float>::pg1();
-      typename acle<uint16_t>::vt h_v = svld1(pg1h, h.v);
+      typename acle<uint16_t>::vt h_v = svld1(pg1h, (typename acle<uint16_t>::pt*)&h.v);
       typename acle<uint16_t>::vt ha_v = svzip1(h_v, h_v);
       typename acle<uint16_t>::vt hb_v = svzip2(h_v, h_v);
       typename acle<float>::vt sa_v = svcvt_f32_x(pg1s, ha_v);
@@ -70,7 +70,7 @@
       typename acle<uint16_t>::vt hab_v = svuzp1(ha_v, hb_v);
       typename acle<uint16_t>::vt hcd_v = svuzp1(hc_v, hd_v);
       typename acle<uint16_t>::vt r_v = svuzp1(hab_v, hcd_v);
-      svst1(pg1h, ret.v, r_v);
+      svst1(pg1h, (typename acle<uint16_t>::pt*)&ret.v, r_v);
 
       return ret;
 /*
@@ -84,7 +84,7 @@
 
       svbool_t pg1h = acle<uint16_t>::pg1();
       svbool_t pg1d = acle<double>::pg1();
-      typename acle<uint16_t>::vt h_v = svld1(pg1h, h.v);
+      typename acle<uint16_t>::vt h_v = svld1(pg1h, (typename acle<uint16_t>::pt*)&h.v);
       typename acle<uint16_t>::vt sa_v = svzip1(h_v, h_v);
       typename acle<uint16_t>::vt sb_v = svzip2(h_v, h_v);
       typename acle<uint16_t>::vt da_v = svzip1(sa_v, sa_v);

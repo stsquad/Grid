@@ -52,7 +52,7 @@
   template <>
   struct acle<uint16_t>{
     typedef svfloat16_t vt;
-    typedef uint16_t pt;
+    typedef float16_t pt;
     typedef uint16_t uint;
     typedef svuint16_t svuint;
     static inline svfloat16_t zero(){svfloat16_t z_v = __svzero(z_v); return z_v;}

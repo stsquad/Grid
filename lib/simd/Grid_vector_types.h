@@ -58,9 +58,15 @@ directory
 #ifndef GRID_VECTOR_TYPES
 #define GRID_VECTOR_TYPES
 
-#if defined GENSVE
+#if defined (GENSVE)
+#pragma message("building for GENSVE")
 #include "Grid_gen_sve.h"
+#elif defined (NEONV8)
+#define GEN_SIMD_WIDTH 16u
+#pragma message("building for NEONv8")
+#include "Grid_neon.h"
 #else
+#pragma message("building for GEN")
 #include "Grid_generic.h"
 #endif
 

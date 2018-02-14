@@ -4,9 +4,12 @@
 
     Source file: ./lib/simd/Grid_neon.h
 
-    Copyright (C) 2015
+    Copyright (C) 2017, 2018
 
     Author: Nils Meyer <nils.meyer@ur.de>
+
+    Original copyright(C) 2015
+
     Author: Peter Boyle <paboyle@ph.ed.ac.uk>
     Author: neo <cossu@post.kek.jp>
 
@@ -69,68 +72,67 @@ namespace Optimization {
 
   struct Vsplat{
     //Complex float
-    inline float32x4_t operator()(float a, float b){
+    inline float32x4_t operator()(const float a, const float b){
       float tmp[4]={a,b,a,b};
       return vld1q_f32(tmp);
     }
     // Real float
-    inline float32x4_t operator()(float a){
+    inline float32x4_t operator()(const float a){
       return vdupq_n_f32(a);
     }
     //Complex double
-    inline float64x2_t operator()(double a, double b){
+    inline float64x2_t operator()(const double a, const double b){
       double tmp[2]={a,b};
       return vld1q_f64(tmp);
     }
     //Real double
-    inline float64x2_t operator()(double a){
+    inline float64x2_t operator()(const double a){
       return vdupq_n_f64(a);
     }
     //Integer
-    inline uint32x4_t operator()(Integer a){
+    inline uint32x4_t operator()(const Integer a){
       return vdupq_n_u32(a);
     }
   };
 
   struct Vstore{
     //Float
-    inline void operator()(float32x4_t a, float* F){
+    inline void operator()(const float32x4_t a, float* F){
       vst1q_f32(F, a);
     }
     //Double
-    inline void operator()(float64x2_t a, double* D){
+    inline void operator()(const float64x2_t a, double* D){
       vst1q_f64(D, a);
     }
     //Integer
-    inline void operator()(uint32x4_t a, Integer* I){
+    inline void operator()(const uint32x4_t a, Integer* I){
       vst1q_u32(I, a);
     }
 
   };
 
-  struct Vstream{ // N:equivalents to _mm_stream_p* in NEON?
-    //Float // N:generic
-    inline void operator()(float * a, float32x4_t b){
+  // FIXME use non-temporal store instead of memcpy
+  struct Vstream{
+    //Float
+    inline void operator()(float * a, const float32x4_t b){
       memcpy(a,&b,4*sizeof(float));
     }
-    //Double // N:generic
-    inline void operator()(double * a, float64x2_t b){
+    //Double
+    inline void operator()(double * a, const float64x2_t b){
       memcpy(a,&b,2*sizeof(double));
     }
 
 
   };
 
-  // Nils: Vset untested; not used currently in Grid at all;
-  // git commit 4a8c4ccfba1d05159348d21a9698028ea847e77b
   struct Vset{
     // Complex float
-    inline float32x4_t operator()(Grid::ComplexF *a){
+    inline float32x4_t operator()(const Grid::ComplexF *a){
       float tmp[4]={a[1].imag(),a[1].real(),a[0].imag(),a[0].real()};
       return vld1q_f32(tmp);
     }
     // Complex double
-    inline float64x2_t operator()(Grid::ComplexD *a){
+    inline float64x2_t operator()(const Grid::ComplexD *a){
       double tmp[2]={a[0].imag(),a[0].real()};
       return vld1q_f64(tmp);
     }
@@ -166,51 +168,51 @@ namespace Optimization {
   /////////////////////////////////////////////////////
   struct Sum{
     //Complex/Real float
-    inline float32x4_t operator()(float32x4_t a, float32x4_t b){
+    inline float32x4_t operator()(const float32x4_t a, const float32x4_t b){
       return vaddq_f32(a,b);
     }
     //Complex/Real double
-    inline float64x2_t operator()(float64x2_t a, float64x2_t b){
+    inline float64x2_t operator()(const float64x2_t a, const float64x2_t b){
       return vaddq_f64(a,b);
     }
     //Integer
-    inline uint32x4_t operator()(uint32x4_t a, uint32x4_t b){
+    inline uint32x4_t operator()(const uint32x4_t a, const uint32x4_t b){
       return vaddq_u32(a,b);
     }
   };
 
   struct Sub{
     //Complex/Real float
-    inline float32x4_t operator()(float32x4_t a, float32x4_t b){
+    inline float32x4_t operator()(const float32x4_t a, const float32x4_t b){
       return vsubq_f32(a,b);
     }
     //Complex/Real double
-    inline float64x2_t operator()(float64x2_t a, float64x2_t b){
+    inline float64x2_t operator()(const float64x2_t a, const float64x2_t b){
       return vsubq_f64(a,b);
     }
     //Integer
-    inline uint32x4_t operator()(uint32x4_t a, uint32x4_t b){
+    inline uint32x4_t operator()(const uint32x4_t a, const uint32x4_t b){
       return vsubq_u32(a,b);
     }
   };
 
   struct MultRealPart{
-    inline float32x4_t operator()(float32x4_t a, float32x4_t b){
+    inline float32x4_t operator()(const float32x4_t a, const float32x4_t b){
       float32x4_t re = vtrn1q_f32(a, a);
       return vmulq_f32(re, b);
     }
-    inline float64x2_t operator()(float64x2_t a, float64x2_t b){
+    inline float64x2_t operator()(const float64x2_t a, const float64x2_t b){
       float64x2_t re = vzip1q_f64(a, a);
       return vmulq_f64(re, b);
     }
   };
 
   struct MaddRealPart{
-    inline float32x4_t operator()(float32x4_t a, float32x4_t b, float32x4_t c){
+    inline float32x4_t operator()(const float32x4_t a, const float32x4_t b, const float32x4_t c){
       float32x4_t re = vtrn1q_f32(a, a);
       return vfmaq_f32(c, re, b);
     }
-    inline float64x2_t operator()(float64x2_t a, float64x2_t b, float64x2_t c){
+    inline float64x2_t operator()(const float64x2_t a, const float64x2_t b, const float64x2_t c){
       float64x2_t re = vzip1q_f64(a, a);
       return vfmaq_f64(c, re, b);
     }
@@ -218,18 +220,18 @@ namespace Optimization {
 
   struct Div{
     // Real float
-    inline float32x4_t operator()(float32x4_t a, float32x4_t b){
+    inline float32x4_t operator()(const float32x4_t a, const float32x4_t b){
       return vdivq_f32(a, b);
     }
     // Real double
-    inline float64x2_t operator()(float64x2_t a, float64x2_t b){
+    inline float64x2_t operator()(const float64x2_t a, const float64x2_t b){
       return vdivq_f64(a, b);
     }
   };
 
   struct MultComplex{
     // Complex float
-    inline float32x4_t operator()(float32x4_t a, float32x4_t b){
+    inline float32x4_t operator()(const float32x4_t a, const float32x4_t b){
 
       float32x4_t r0, r1, r2, r3, r4;
 
@@ -253,7 +255,7 @@ namespace Optimization {
       // return vaddq_f32(r4, r5);
     }
     // Complex double
-    inline float64x2_t operator()(float64x2_t a, float64x2_t b){
+    inline float64x2_t operator()(const float64x2_t a, const float64x2_t b){
 
       float64x2_t r0, r1, r2, r3, r4;
 
@@ -279,30 +281,30 @@ namespace Optimization {
 
   struct Mult{
     // Real float
-    inline float32x4_t mac(float32x4_t a, float32x4_t b, float32x4_t c){
+    inline float32x4_t mac(const float32x4_t a, const float32x4_t b, const float32x4_t c){
       //return vaddq_f32(vmulq_f32(b,c),a);
       return vfmaq_f32(a, b, c);
     }
-    inline float64x2_t mac(float64x2_t a, float64x2_t b, float64x2_t c){
+    inline float64x2_t mac(const float64x2_t a, const float64x2_t b, const float64x2_t c){
       //return vaddq_f64(vmulq_f64(b,c),a);
       return vfmaq_f64(a, b, c);
     }
-    inline float32x4_t operator()(float32x4_t a, float32x4_t b){
+    inline float32x4_t operator()(const float32x4_t a, const float32x4_t b){
       return vmulq_f32(a,b);
     }
     // Real double
-    inline float64x2_t operator()(float64x2_t a, float64x2_t b){
+    inline float64x2_t operator()(const float64x2_t a, const float64x2_t b){
       return vmulq_f64(a,b);
     }
     // Integer
-    inline uint32x4_t operator()(uint32x4_t a, uint32x4_t b){
+    inline uint32x4_t operator()(const uint32x4_t a, const uint32x4_t b){
       return vmulq_u32(a,b);
     }
   };
 
   struct Conj{
     // Complex single
-    inline float32x4_t operator()(float32x4_t in){
+    inline float32x4_t operator()(const float32x4_t in){
       // ar ai br bi -> ar -ai br -bi
       float32x4_t r0, r1;
       r0 = vnegq_f32(in);        // -ar -ai -br -bi
@@ -310,7 +312,7 @@ namespace Optimization {
       return vtrn1q_f32(in, r1); //  ar -ai  br -bi
     }
     // Complex double
-    inline float64x2_t operator()(float64x2_t in){
+    inline float64x2_t operator()(const float64x2_t in){
 
       float64x2_t r0, r1;
       r0 = vextq_f64(in, in, 1);    //  ai  ar
@@ -322,7 +324,7 @@ namespace Optimization {
 
   struct TimesMinusI{
     //Complex single
-    inline float32x4_t operator()(float32x4_t in, float32x4_t ret){
+    inline float32x4_t operator()(const float32x4_t in, const float32x4_t ret){
       // ar ai br bi -> ai -ar ai -br
       float32x4_t r0, r1;
       r0 = vnegq_f32(in);        // -ar -ai -br -bi
@@ -330,7 +332,7 @@ namespace Optimization {
       return vtrn1q_f32(r1, r0); //  ar -ai  br -bi
     }
     //Complex double
-    inline float64x2_t operator()(float64x2_t in, float64x2_t ret){
+    inline float64x2_t operator()(const float64x2_t in, const float64x2_t ret){
       // a ib -> b -ia
       float64x2_t tmp;
       tmp = vnegq_f64(in);
@@ -340,7 +342,7 @@ namespace Optimization {
 
   struct TimesI{
     //Complex single
-    inline float32x4_t operator()(float32x4_t in, float32x4_t ret){
+    inline float32x4_t operator()(const float32x4_t in, const float32x4_t ret){
       // ar ai br bi -> -ai ar -bi br
       float32x4_t r0, r1;
       r0 = vnegq_f32(in);        // -ar -ai -br -bi
@@ -348,7 +350,7 @@ namespace Optimization {
       return vtrn1q_f32(r1, in); // -ai  ar -bi  br
     }
     //Complex double
-    inline float64x2_t operator()(float64x2_t in, float64x2_t ret){
+    inline float64x2_t operator()(const float64x2_t in, const float64x2_t ret){
       // a ib -> -b ia
       float64x2_t tmp;
       tmp = vnegq_f64(in);
@@ -358,32 +360,32 @@ namespace Optimization {
 
   struct Permute{
 
-    static inline float32x4_t Permute0(float32x4_t in){ // N:ok
+    static inline float32x4_t Permute0(const float32x4_t in){
       // AB CD -> CD AB
       return vextq_f32(in, in, 2);
     };
-    static inline float32x4_t Permute1(float32x4_t in){ // N:ok
+    static inline float32x4_t Permute1(const float32x4_t in){
       // AB CD -> BA DC
       return vrev64q_f32(in);
     };
-    static inline float32x4_t Permute2(float32x4_t in){ // N:not used by Boyle
+    static inline float32x4_t Permute2(const float32x4_t in){ // N:not used by Boyle
       return in;
     };
-    static inline float32x4_t Permute3(float32x4_t in){ // N:not used by Boyle
+    static inline float32x4_t Permute3(const float32x4_t in){ // N:not used by Boyle
       return in;
     };
 
-    static inline float64x2_t Permute0(float64x2_t in){ // N:ok
+    static inline float64x2_t Permute0(const float64x2_t in){
       // AB -> BA
       return vextq_f64(in, in, 1);
     };
-    static inline float64x2_t Permute1(float64x2_t in){ // N:not used by Boyle
+    static inline float64x2_t Permute1(const float64x2_t in){ // N:not used by Boyle
       return in;
     };
-    static inline float64x2_t Permute2(float64x2_t in){ // N:not used by Boyle
+    static inline float64x2_t Permute2(const float64x2_t in){ // N:not used by Boyle
       return in;
     };
-    static inline float64x2_t Permute3(float64x2_t in){ // N:not used by Boyle
+    static inline float64x2_t Permute3(const float64x2_t in){ // N:not used by Boyle
       return in;
     };
 
@@ -391,7 +393,7 @@ namespace Optimization {
 
   struct Rotate{
 
-    static inline float32x4_t rotate(float32x4_t in,int n){ // N:ok
+    static inline float32x4_t rotate(const float32x4_t in, const int n){
       switch(n){
       case 0: // AB CD -> AB CD
         return tRotate<0>(in);
@@ -408,7 +410,7 @@ namespace Optimization {
       default: assert(0);
       }
     }
-    static inline float64x2_t rotate(float64x2_t in,int n){ // N:ok
+    static inline float64x2_t rotate(const float64x2_t in, const int n){
       switch(n){
       case 0: // AB -> AB
         return tRotate<0>(in);
@@ -420,18 +422,18 @@ namespace Optimization {
       }
     }
 
-    template<int n> static inline float32x4_t tRotate(float32x4_t in){ return vextq_f32(in,in,n%4); };
-    template<int n> static inline float64x2_t tRotate(float64x2_t in){ return vextq_f64(in,in,n%2); };
+    template<int n> static inline float32x4_t tRotate(const float32x4_t in){ return vextq_f32(in,in,n%4); };
+    template<int n> static inline float64x2_t tRotate(const float64x2_t in){ return vextq_f64(in,in,n%2); };
 
   };
 
   struct PrecisionChange {
 
-    static inline float16x8_t StoH (const float32x4_t &a,const float32x4_t &b) {
+    static inline float16x8_t StoH (const float32x4_t &a, const float32x4_t &b) {
       float16x4_t h = vcvt_f16_f32(a);
       return vcvt_high_f16_f32(h, b);
     }
-    static inline void  HtoS (float16x8_t h,float32x4_t &sa,float32x4_t &sb) {
+    static inline void  HtoS (const float16x8_t h, float32x4_t &sa, float32x4_t &sb) {
       sb = vcvt_high_f32_f16(h);
       // there is no direct conversion from lower float32x4_t to float64x2_t
       // vextq_f16 not supported by clang 3.8 / 4.0 / arm clang
@@ -441,24 +443,24 @@ namespace Optimization {
       float16x8_t h1 = reinterpret_cast<float16x8_t>(vextq_u32(h1u, h1u, 2));
       sa = vcvt_high_f32_f16(h1);
     }
-    static inline float32x4_t DtoS (float64x2_t a,float64x2_t b) {
+    static inline float32x4_t DtoS (const float64x2_t a, const float64x2_t b) {
       float32x2_t s = vcvt_f32_f64(a);
       return vcvt_high_f32_f64(s, b);
 
     }
-    static inline void StoD (float32x4_t s,float64x2_t &a,float64x2_t &b) {
+    static inline void StoD (const float32x4_t s, float64x2_t &a, float64x2_t &b) {
       b = vcvt_high_f64_f32(s);
       // there is no direct conversion from lower float32x4_t to float64x2_t
       float32x4_t s1 = vextq_f32(s, s, 2);
       a = vcvt_high_f64_f32(s1);
 
     }
-    static inline float16x8_t DtoH (float64x2_t a,float64x2_t b,float64x2_t c,float64x2_t d) {
+    static inline float16x8_t DtoH (const float64x2_t a, const float64x2_t b, const float64x2_t c, const float64x2_t d) {
       float32x4_t s1 = DtoS(a, b);
       float32x4_t s2 = DtoS(c, d);
       return StoH(s1, s2);
     }
-    static inline void HtoD (float16x8_t h,float64x2_t &a,float64x2_t &b,float64x2_t &c,float64x2_t &d) {
+    static inline void HtoD (const float16x8_t h, float64x2_t &a, float64x2_t &b, float64x2_t &c, float64x2_t &d) {
       float32x4_t s1, s2;
       HtoS(h, s1, s2);
       StoD(s1, a, b);
@@ -470,7 +472,7 @@ namespace Optimization {
   // Exchange support
 
   struct Exchange{
-    static inline void Exchange0(float32x4_t &out1,float32x4_t &out2,float32x4_t in1,float32x4_t in2){
+    static inline void Exchange0(float32x4_t &out1, float32x4_t &out2, const float32x4_t in1, const float32x4_t in2){
       // in1: ABCD -> out1: ABEF
       // in2: EFGH -> out2: CDGH
 
@@ -485,36 +487,36 @@ namespace Optimization {
       out2 = vextq_f32(in1, z, 2);
     };
 
-    static inline void Exchange1(float32x4_t &out1,float32x4_t &out2,float32x4_t in1,float32x4_t in2){
+    static inline void Exchange1(float32x4_t &out1, float32x4_t &out2, const float32x4_t in1, const float32x4_t in2){
       // in1: ABCD -> out1: AECG
       // in2: EFGH -> out2: BFDH
       out1 = vtrn1q_f32(in1, in2);
       out2 = vtrn2q_f32(in1, in2);
     };
-    static inline void Exchange2(float32x4_t &out1,float32x4_t &out2,float32x4_t in1,float32x4_t in2){
+    static inline void Exchange2(float32x4_t &out1, float32x4_t &out2, const float32x4_t in1, const float32x4_t in2){
       assert(0);
       return;
     };
-    static inline void Exchange3(float32x4_t &out1,float32x4_t &out2,float32x4_t in1,float32x4_t in2){
+    static inline void Exchange3(float32x4_t &out1, float32x4_t &out2, const float32x4_t in1, const float32x4_t in2){
       assert(0);
       return;
     };
     // double precision
-    static inline void Exchange0(float64x2_t &out1,float64x2_t &out2,float64x2_t in1,float64x2_t in2){
+    static inline void Exchange0(float64x2_t &out1, float64x2_t &out2, const float64x2_t in1, const float64x2_t in2){
       // in1: AB -> out1: AC
       // in2: CD -> out2: BD
       out1 = vzip1q_f64(in1, in2);
       out2 = vzip2q_f64(in1, in2);
     };
-    static inline void Exchange1(float64x2_t &out1,float64x2_t &out2,float64x2_t in1,float64x2_t in2){
+    static inline void Exchange1(float64x2_t &out1, float64x2_t &out2, const float64x2_t in1, const float64x2_t in2){
       assert(0);
       return;
     };
-    static inline void Exchange2(float64x2_t &out1,float64x2_t &out2,float64x2_t in1,float64x2_t in2){
+    static inline void Exchange2(float64x2_t &out1, float64x2_t &out2, const float64x2_t in1, const float64x2_t in2){
       assert(0);
       return;
     };
-    static inline void Exchange3(float64x2_t &out1,float64x2_t &out2,float64x2_t in1,float64x2_t in2){
+    static inline void Exchange3(float64x2_t &out1, float64x2_t &out2, const float64x2_t in1, const float64x2_t in2){
       assert(0);
       return;
     };
@@ -526,7 +528,7 @@ namespace Optimization {
 
   //Complex float Reduce
   template<>
-  inline Grid::ComplexF Reduce<Grid::ComplexF, float32x4_t>::operator()(float32x4_t in){
+  inline Grid::ComplexF Reduce<Grid::ComplexF, float32x4_t>::operator()(const float32x4_t in){
     float32x4_t v1; // two complex
     v1 = Optimization::Permute::Permute0(in);
     v1 = vaddq_f32(v1,in);
@@ -535,27 +537,27 @@ namespace Optimization {
   }
   //Real float Reduce
   template<>
-  inline Grid::RealF Reduce<Grid::RealF, float32x4_t>::operator()(float32x4_t in){
+  inline Grid::RealF Reduce<Grid::RealF, float32x4_t>::operator()(const float32x4_t in){
     return vaddvq_f32(in);
   }
 
 
   //Complex double Reduce
   template<>
-  inline Grid::ComplexD Reduce<Grid::ComplexD, float64x2_t>::operator()(float64x2_t in){
+  inline Grid::ComplexD Reduce<Grid::ComplexD, float64x2_t>::operator()(const float64x2_t in){
     u128d conv; conv.v = in;
     return Grid::ComplexD(conv.f[0],conv.f[1]);
   }
 
   //Real double Reduce
   template<>
-  inline Grid::RealD Reduce<Grid::RealD, float64x2_t>::operator()(float64x2_t in){
+  inline Grid::RealD Reduce<Grid::RealD, float64x2_t>::operator()(const float64x2_t in){
     return vaddvq_f64(in);
   }
 
   //Integer Reduce
   template<>
-  inline Integer Reduce<Integer, uint32x4_t>::operator()(uint32x4_t in){
+  inline Integer Reduce<Integer, uint32x4_t>::operator()(const uint32x4_t in){
     return vaddvq_u32(in);
   }
 }
@@ -596,4 +598,3 @@ namespace Optimization {
   typedef Optimization::TimesI      TimesISIMD;
 
 }
-

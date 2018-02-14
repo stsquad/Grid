@@ -138,8 +138,8 @@ namespace Optimization {
   #endif
 
   #if defined(SVE_GROUP_PREC)
-//  #pragma message("enabling SVE_GROUP_PREC")
-//  #define SVE_PREC
+  //#pragma message("enabling SVE_GROUP_PREC")
+  //#define SVE_PREC
   #endif
 
   #if defined(SVE_GROUP_PERM)
@@ -150,7 +150,7 @@ namespace Optimization {
   #endif
 
 
-  #endif
+  #endif // GENSVE
 
   #if defined(GENSVE) && defined(SVE_VSPLAT)
   #include "sve/sve_vsplat.h"
