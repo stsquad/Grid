@@ -23,6 +23,9 @@
     #if (GEN_SIMD_WIDTH == 64u)
     static inline svbool_t pg2(){return svptrue_pat_b64(SV_VL4);}
     static inline svbool_t pg4(){return svptrue_pat_b64(SV_VL2);}
+    #elif (GEN_SIMD_WIDTH == 32u)
+    static inline svbool_t pg2(){return svptrue_pat_b64(SV_VL2);}
+    static inline svbool_t pg4(){return svptrue_pat_b64(SV_VL1);}
     #else
     static inline svbool_t pg2(){return svuzp1_b64(svptrue_b64(), svpfalse_b());}
     static inline svbool_t pg4(){return svwhilelt_b64((uint64_t)0, (uint64_t)(W<double>::c / 2u));}
@@ -42,6 +45,8 @@
     static inline svbool_t pg1(){return svptrue_b32();}
     #if (GEN_SIMD_WIDTH == 64u)
     static inline svbool_t pg2(){return svptrue_pat_b32(SV_VL8);}
+    #elif (GEN_SIMD_WIDTH == 32u)
+    static inline svbool_t pg2(){return svptrue_pat_b32(SV_VL4);}
     #else
     static inline svbool_t pg2(){return svuzp1_b32(svptrue_b32(), svpfalse_b());}
     #endif
@@ -59,6 +64,8 @@
     static inline svbool_t pg1(){return svptrue_b16();}
     #if (GEN_SIMD_WIDTH == 64u)
     static inline svbool_t pg2(){return svptrue_pat_b16(SV_VL16);}
+    #elif (GEN_SIMD_WIDTH == 32u)
+    static inline svbool_t pg2(){return svptrue_pat_b16(SV_VL8);}
     #else
     static inline svbool_t pg2(){return svuzp1_b16(svptrue_b16(), svpfalse_b());}
     #endif
@@ -70,12 +77,13 @@
   struct acle<Integer>{
     typedef svuint32_t vt;
     typedef Integer pt;
-    // Is Integer guaranteed to be an uint32_t???
     typedef uint32_t uint;
     typedef svuint32_t svuint;
     static inline svbool_t pg1(){return svptrue_b32();}
     #if (GEN_SIMD_WIDTH == 64u)
     static inline svbool_t pg2(){return svptrue_pat_b32(SV_VL8);}
+    #elif (GEN_SIMD_WIDTH == 32u)
+    static inline svbool_t pg2(){return svptrue_pat_b32(SV_VL4);}
     #else
     static inline svbool_t pg2(){return svuzp1_b32(svptrue_b32(), svpfalse_b());}
     #endif

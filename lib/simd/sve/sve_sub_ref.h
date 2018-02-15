@@ -12,7 +12,7 @@
       typename acle<T>::vt *a_v = (typename acle<T>::vt*)&a.v;
       typename acle<T>::vt *b_v = (typename acle<T>::vt*)&b.v;
       typename acle<T>::vt *r_v = (typename acle<T>::vt*)&out.v;
-      *r_v = svadd_x(pg1, *a_v, *b_v);
+      *r_v = svsub_x(pg1, *a_v, *b_v);
 
       return out;
     }

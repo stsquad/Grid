@@ -20,7 +20,7 @@
       svst1(pg1, out2.v, r2_v);
     };
 
-    // specialization for SVE 512-bit vector length
+    // specialization for SVE 512 bit vector length
     #if (GEN_SIMD_WIDTH == 64u)
     #pragma message("specialize exchange for 512 bit vector length")
 
@@ -69,6 +69,63 @@
 
     static inline void Exchange3(vec<double> &out1, vec<double> &out2, const vec<double> &in1, const vec<double> &in2){
       assert(0);
+      return;
+    };
+
+    // specialization for SVE 256-bit vector length
+    #elif (GEN_SIMD_WIDTH == 32u)
+    #pragma message("specialize exchange for 256 bit vector length")
+
+    static inline void Exchange1(vec<double> &out1, vec<double> &out2, const vec<double> &in1, const vec<double> &in2){
+
+      svbool_t pg1 = acle<double>::pg1();
+      typename acle<double>::vt a1_v = svld1(pg1, in1.v);
+      typename acle<double>::vt a2_v = svld1(pg1, in2.v);
+      typename acle<double>::vt r1_v = svtrn1(a1_v, a2_v);
+      typename acle<double>::vt r2_v = svtrn2(a1_v, a2_v);
+      svst1(pg1, out1.v, r1_v);
+      svst1(pg1, out2.v, r2_v);
+    };
+
+    static inline void Exchange1(vec<float> &out1, vec<float> &out2, const vec<float> &in1, const vec<float> &in2){
+
+      svbool_t pg4 = acle<double>::pg4();
+      typename acle<double>::vt4 in1_v4 = svld4(pg4, (typename acle<double>::pt*)in1.v);
+      typename acle<double>::vt4 in2_v4 = svld4(pg4, (typename acle<double>::pt*)in2.v);
+      typename acle<double>::vt4 out1_v4;
+      typename acle<double>::vt4 out2_v4;
+      out1_v4.v0 = in1_v4.v0;
+      out1_v4.v1 = in1_v4.v1;
+      out1_v4.v2 = in2_v4.v0;
+      out1_v4.v3 = in2_v4.v1;
+      out2_v4.v0 = in1_v4.v2;
+      out2_v4.v1 = in1_v4.v3;
+      out2_v4.v2 = in2_v4.v2;
+      out2_v4.v3 = in2_v4.v3;
+      svst4(pg4, (typename acle<double>::pt*)out1.v, out1_v4);
+      svst4(pg4, (typename acle<double>::pt*)out2.v, out2_v4);
+    };
+
+    static inline void Exchange2(vec<double> &out1, vec<double> &out2, const vec<double> &in1, const vec<double> &in2){
+      assert(0);
+      return;
+    };
+
+    static inline void Exchange2(vec<float> &out1, vec<float> &out2, const vec<float> &in1, const vec<float> &in2){
+
+      svbool_t pg1 = acle<float>::pg1();
+      typename acle<float>::vt a1_v = svld1(pg1, in1.v);
+      typename acle<float>::vt a2_v = svld1(pg1, in2.v);
+      typename acle<float>::vt r1_v = svtrn1(a1_v, a2_v);
+      typename acle<float>::vt r2_v = svtrn2(a1_v, a2_v);
+      svst1(pg1, out1.v, r1_v);
+      svst1(pg1, out2.v, r2_v);
+    };
+
+    template <typename T>
+    static inline void Exchange3(vec<T> &out1, vec<T> &out2, const vec<T> &in1, const vec<T> &in2){
+      assert(0);
+      return;
     };
 
     #else

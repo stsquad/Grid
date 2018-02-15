@@ -65,8 +65,48 @@
       return in;
     }
 
+    // specialization for SVE 512-bit vector length
+    #elif (GEN_SIMD_WIDTH == 32u)
+    #pragma message("specialize permute for 256 bit vector length")
+
+    template <typename T>
+    static inline vec<T> Permute1(const vec<T> &in) {
+
+      vec<T> out;
+      svbool_t pg1 = acle<double>::pg1();
+      typename acle<double>::vt a_v = svld1(pg1, (typename acle<double>::pt*)in.v);
+      typename acle<double>::vt b_v = svtrn2(a_v, a_v);
+      typename acle<double>::vt r_v = svtrn1(b_v, a_v);
+      svst1(pg1, (typename acle<double>::pt*)out.v, r_v);
+
+      return out;
+    }
+
+    static inline vec<float> Permute2(const vec<float> &in) {
+
+      vec<float> out;
+      svbool_t pg1 = acle<float>::pg1();
+      typename acle<float>::vt a_v = svld1(pg1, in.v);
+      typename acle<float>::vt b_v = svtrn2(a_v, a_v);
+      typename acle<float>::vt r_v = svtrn1(b_v, a_v);
+      svst1(pg1, out.v, r_v);
+
+      return out;
+    }
+
+    static inline vec<double> Permute2(const vec<double> &in) {
+      return in;
+    }
+
+    static inline vec<double> Permute3(const vec<double> &in) {
+      return in;
+    }
+
+    static inline vec<float> Permute3(const vec<float> &in) {
+      return in;
+    }
+
     #else
-    #pragma message("generic permute")
 
     #define perm(l, n, w)\
     unsigned int _mask = w >> (n + 1);\
