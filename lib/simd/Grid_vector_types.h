@@ -283,24 +283,24 @@ class Grid_simd {
   ////////////////////////////
   // operator scalar * simd
   ////////////////////////////
-  friend inline Grid_simd operator*(const Scalar_type &a, Grid_simd b) {
+  friend inline Grid_simd operator*(const Scalar_type &a, const Grid_simd &b) {
     Grid_simd va;
     vsplat(va, a);
     return va * b;
   }
-  friend inline Grid_simd operator*(Grid_simd b, const Scalar_type &a) {
+  friend inline Grid_simd operator*(const Grid_simd &b, const Scalar_type &a) {
     return a * b;
   }
 
   //////////////////////////////////
   // Divides
   //////////////////////////////////
-  friend inline Grid_simd operator/(const Scalar_type &a, Grid_simd b) {
+  friend inline Grid_simd operator/(const Scalar_type &a, const Grid_simd &b) {
     Grid_simd va;
     vsplat(va, a);
     return va / b;
   }
-  friend inline Grid_simd operator/(Grid_simd b, const Scalar_type &a) {
+  friend inline Grid_simd operator/(const Grid_simd &b, const Scalar_type &a) {
     Grid_simd va;
     vsplat(va, a);
     return b / a;
@@ -430,11 +430,11 @@ class Grid_simd {
   ///////////////////////////////
   // Getting single lanes
   ///////////////////////////////
-  inline Scalar_type getlane(int lane) {
+  inline Scalar_type getlane(const int lane) {
     return ((Scalar_type*)&v)[lane];
   }
 
-  inline void putlane(const Scalar_type &S, int lane){
+  inline void putlane(const Scalar_type &S,const int lane){
     ((Scalar_type*)&v)[lane] = S;
   }
 
@@ -442,10 +442,10 @@ class Grid_simd {
 
 };  // end of Grid_simd class definition
 
-inline void permute(ComplexD &y,ComplexD b, int perm) {  y=b; }
-inline void permute(ComplexF &y,ComplexF b, int perm) {  y=b; }
-inline void permute(RealD &y,RealD b, int perm) {  y=b; }
-inline void permute(RealF &y,RealF b, int perm) {  y=b; }
+inline void permute(ComplexD &y,const ComplexD b, const int perm) {  y=b; }
+inline void permute(ComplexF &y,const ComplexF b, const int perm) {  y=b; }
+inline void permute(RealD &y,const RealD b, const int perm) {  y=b; }
+inline void permute(RealF &y,const RealF b, const int perm) {  y=b; }
 
 ////////////////////////////////////////////////////////////////////
 // General rotate
@@ -465,7 +465,7 @@ inline Grid_simd<S, V> rotate(const Grid_simd<S, V> &b, const int nrot) {
   return ret;
 }
 template <class S, class V, IfNotComplex<S> =0>
-inline void rotate( Grid_simd<S,V> &ret,const Grid_simd<S,V> &b, const int nrot)
+inline void rotate(Grid_simd<S,V> &ret,const Grid_simd<S,V> &b, const int nrot)
 {
   int n = nrot % Grid_simd<S,V>::Nsimd();
   ret.v = Optimization::Rotate::rotate(b.v,n);
@@ -478,12 +478,12 @@ inline void rotate(Grid_simd<S,V> &ret,const Grid_simd<S,V> &b, const int nrot)
 }
 
 template <class S, class V>
-inline void vbroadcast(Grid_simd<S,V> &ret,const Grid_simd<S,V> &src,int lane){
+inline void vbroadcast(Grid_simd<S,V> &ret,const Grid_simd<S,V> &src,const int lane){
   S* typepun =(S*) &src;
   vsplat(ret,typepun[lane]);
 }
 template <class S, class V, IfComplex<S> =0>
-inline void rbroadcast(Grid_simd<S,V> &ret,const Grid_simd<S,V> &src,int lane){
+inline void rbroadcast(Grid_simd<S,V> &ret,const Grid_simd<S,V> &src,const int lane){
   S* typepun =(S*) &src;
   ret.v = unary<V>(real(typepun[lane]), VsplatSIMD());
 }
@@ -496,24 +496,24 @@ inline void rbroadcast(Grid_simd<S,V> &ret,const Grid_simd<S,V> &src,int lane){
 
 // this is only for the complex version
 template <class S, class V, IfComplex<S> = 0, class ABtype>
-inline void vsplat(Grid_simd<S, V> &ret, ABtype a, ABtype b) {
+inline void vsplat(Grid_simd<S, V> &ret, const ABtype a, const ABtype b) {
   ret.v = binary<V>(a, b, VsplatSIMD());
 }
 
 // overload if complex
 template <class S, class V>
-inline void vsplat(Grid_simd<S, V> &ret, EnableIf<is_complex<S>, S> c) {
+inline void vsplat(Grid_simd<S, V> &ret, const EnableIf<is_complex<S>, S> c) {
   vsplat(ret, real(c), imag(c));
 }
 template <class S, class V>
-inline void rsplat(Grid_simd<S, V> &ret, EnableIf<is_complex<S>, S> c) {
+inline void rsplat(Grid_simd<S, V> &ret, const EnableIf<is_complex<S>, S> c) {
   vsplat(ret, real(c), real(c));
 }
 
 // if real fill with a, if complex fill with a in the real part (first function
 // above)
 template <class S, class V>
-inline void vsplat(Grid_simd<S, V> &ret, NotEnableIf<is_complex<S>, S> a) {
+inline void vsplat(Grid_simd<S, V> &ret, const NotEnableIf<is_complex<S>, S> a) {
   ret.v = unary<V>(a, VsplatSIMD());
 }
 //////////////////////////
@@ -796,7 +796,7 @@ typedef Grid_simd<Integer, SIMD_Itype> vInteger;
 typedef Grid_simd<uint16_t, SIMD_Htype>               vRealH;
 typedef Grid_simd<std::complex<uint16_t>, SIMD_Htype> vComplexH;
 
-inline void precisionChange(vRealF    *out,vRealD    *in,int nvec)
+inline void precisionChange(vRealF    *out,vRealD    *in,const int nvec)
 {
   assert((nvec&0x1)==0);
   for(int m=0;m*2<nvec;m++){
@@ -804,7 +804,7 @@ inline void precisionChange(vRealF    *out,vRealD    *in,int nvec)
     out[m].v=Optimization::PrecisionChange::DtoS(in[n].v,in[n+1].v);
   }
 }
-inline void precisionChange(vRealH    *out,vRealD    *in,int nvec)
+inline void precisionChange(vRealH    *out,vRealD    *in,const int nvec)
 {
   assert((nvec&0x3)==0);
   for(int m=0;m*4<nvec;m++){
@@ -812,7 +812,7 @@ inline void precisionChange(vRealH    *out,vRealD    *in,int nvec)
     out[m].v=Optimization::PrecisionChange::DtoH(in[n].v,in[n+1].v,in[n+2].v,in[n+3].v);
   }
 }
-inline void precisionChange(vRealH    *out,vRealF    *in,int nvec)
+inline void precisionChange(vRealH    *out,vRealF    *in,const int nvec)
 {
   assert((nvec&0x1)==0);
   for(int m=0;m*2<nvec;m++){
@@ -820,7 +820,7 @@ inline void precisionChange(vRealH    *out,vRealF    *in,int nvec)
     out[m].v=Optimization::PrecisionChange::StoH(in[n].v,in[n+1].v);
   }
 }
-inline void precisionChange(vRealD    *out,vRealF    *in,int nvec)
+inline void precisionChange(vRealD    *out,vRealF    *in,const int nvec)
 {
   assert((nvec&0x1)==0);
   for(int m=0;m*2<nvec;m++){
@@ -828,7 +828,7 @@ inline void precisionChange(vRealD    *out,vRealF    *in,int nvec)
     Optimization::PrecisionChange::StoD(in[m].v,out[n].v,out[n+1].v);
   }
 }
-inline void precisionChange(vRealD    *out,vRealH    *in,int nvec)
+inline void precisionChange(vRealD    *out,vRealH    *in,const int nvec)
 {
   assert((nvec&0x3)==0);
   for(int m=0;m*4<nvec;m++){
@@ -836,7 +836,7 @@ inline void precisionChange(vRealD    *out,vRealH    *in,int nvec)
     Optimization::PrecisionChange::HtoD(in[m].v,out[n].v,out[n+1].v,out[n+2].v,out[n+3].v);
   }
 }
-inline void precisionChange(vRealF    *out,vRealH    *in,int nvec)
+inline void precisionChange(vRealF    *out,vRealH    *in,const int nvec)
 {
   assert((nvec&0x1)==0);
   for(int m=0;m*2<nvec;m++){
@@ -844,12 +844,12 @@ inline void precisionChange(vRealF    *out,vRealH    *in,int nvec)
     Optimization::PrecisionChange::HtoS(in[m].v,out[n].v,out[n+1].v);
   }
 }
-inline void precisionChange(vComplexF *out,vComplexD *in,int nvec){ precisionChange((vRealF *)out,(vRealD *)in,nvec);}
-inline void precisionChange(vComplexH *out,vComplexD *in,int nvec){ precisionChange((vRealH *)out,(vRealD *)in,nvec);}
-inline void precisionChange(vComplexH *out,vComplexF *in,int nvec){ precisionChange((vRealH *)out,(vRealF *)in,nvec);}
-inline void precisionChange(vComplexD *out,vComplexF *in,int nvec){ precisionChange((vRealD *)out,(vRealF *)in,nvec);}
-inline void precisionChange(vComplexD *out,vComplexH *in,int nvec){ precisionChange((vRealD *)out,(vRealH *)in,nvec);}
-inline void precisionChange(vComplexF *out,vComplexH *in,int nvec){ precisionChange((vRealF *)out,(vRealH *)in,nvec);}
+inline void precisionChange(vComplexF *out,vComplexD *in,const int nvec){ precisionChange((vRealF *)out,(vRealD *)in,nvec);}
+inline void precisionChange(vComplexH *out,vComplexD *in,const int nvec){ precisionChange((vRealH *)out,(vRealD *)in,nvec);}
+inline void precisionChange(vComplexH *out,vComplexF *in,const int nvec){ precisionChange((vRealH *)out,(vRealF *)in,nvec);}
+inline void precisionChange(vComplexD *out,vComplexF *in,const int nvec){ precisionChange((vRealD *)out,(vRealF *)in,nvec);}
+inline void precisionChange(vComplexD *out,vComplexH *in,const int nvec){ precisionChange((vRealD *)out,(vRealH *)in,nvec);}
+inline void precisionChange(vComplexF *out,vComplexH *in,const int nvec){ precisionChange((vRealF *)out,(vRealH *)in,nvec);}
 
 // Check our vector types are of an appropriate size.
 #if defined QPX

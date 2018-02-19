@@ -111,15 +111,22 @@ namespace Optimization {
 
   };
 
-  // FIXME use non-temporal store instead of memcpy
   struct Vstream{
     //Float
-    inline void operator()(float * a, const float32x4_t &b){
+    inline void operator()(float * a, const float32x4_t b){
+#ifdef __clang__
+      __builtin_nontemporal_store(b, (float32x4_t*)a);
+#else
       memcpy(a,&b,4*sizeof(float));
+#endif
     }
     //Double
-    inline void operator()(double * a, const float64x2_t &b){
+    inline void operator()(double * a, const float64x2_t b){
+#ifdef __clang__
+      __builtin_nontemporal_store(b, (float64x2_t*)a);
+#else
       memcpy(a,&b,2*sizeof(double));
+#endif
     }
 
 
@@ -572,7 +579,11 @@ namespace Optimization {
   typedef uint32x4_t   SIMD_Itype; // Integer type
 
   inline void v_prefetch0(int size, const char *ptr){};  // prefetch utilities
-  inline void prefetch_HINT_T0(const char *ptr){};
+  inline void prefetch_HINT_T0(const char *ptr){
+#ifdef __clang__
+    __builtin_nontemporal_load(ptr);
+#endif
+  };
 
 
   // Function name aliases

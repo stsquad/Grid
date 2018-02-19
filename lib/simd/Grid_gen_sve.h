@@ -2,7 +2,7 @@
 
     Grid physics library, www.github.com/paboyle/Grid
 
-    Source file: ./lib/simd/Grid_generic.h
+    Source file: ./lib/simd/Grid_gen_sve.h
 
     Copyright (C) 2018
 
@@ -34,17 +34,18 @@ Author: Antonin Portelli <antonin.portelli@me.com>
 
 #include "Grid_generic_types.h"
 
+  #if defined(GENSVE)
+#ifdef __ARM_FEATURE_SVE
+#include <arm_sve.h>
+#else
+#pragma error "Missing SVE feature"
+#endif /* __ARM_FEATURE_SVE */
+#endif
+
 namespace Grid {
 namespace Optimization {
 
   #if defined(GENSVE)
-
-  #ifdef __ARM_FEATURE_SVE
-  #include <arm_sve.h>
-  #else
-  #pragma error "Missing SVE feature"
-  #endif /* __ARM_FEATURE_SVE */
-
   #include "sve/sve_acle.h"
 
   #if defined(SVE_FULL)
@@ -60,6 +61,9 @@ namespace Optimization {
   #ifndef SVE_GROUP_PERM
   #define SVE_GROUP_PERM
   #endif
+  #ifndef SVE_GROUP_PREFETCH
+  #define SVE_GROUP_PREFETCH
+  #endif
   #elif defined(SVE_FULL_SLS)
   #ifndef SVE_GROUP_V
   #define SVE_GROUP_V
@@ -73,6 +77,9 @@ namespace Optimization {
   #ifndef SVE_GROUP_PERM
   #define SVE_GROUP_PERM
   #endif
+  #ifndef SVE_GROUP_PREFETCH
+  #define SVE_GROUP_PREFETCH
+  #endif
   #elif defined(SVE_FULL_REF)
   #ifndef SVE_GROUP_V
   #define SVE_GROUP_V
@@ -85,6 +92,9 @@ namespace Optimization {
   #endif
   #ifndef SVE_GROUP_PERM
   #define SVE_GROUP_PERM
+  #endif
+  #ifndef SVE_GROUP_PREFETCH
+  #define SVE_GROUP_PREFETCH
   #endif
   #endif
 
@@ -147,6 +157,11 @@ namespace Optimization {
   #define SVE_ROTATE
   #define SVE_PERMUTE
   #define SVE_EXCHANGE
+  #endif
+
+  #if defined(SVE_GROUP_PREFETCH)
+//  #pragma message("enabling SVE_GROUP_PREFETCH")
+//  #define SVE_PREFETCH
   #endif
 
 
@@ -398,6 +413,12 @@ namespace Optimization {
   #undef cmul
 
   #endif
+
+/*
+  #if defined(GENSVE) && defined(SVE_MADDCOMPLEX)
+  #include "sve/sve_maddcomplex.h"
+  #endif
+*/
 
   #if defined(GENSVE) && defined(SVE_DIV_REF)
   #include "sve/sve_div_ref.h"
@@ -762,6 +783,10 @@ namespace Optimization {
   #undef acc  // EIGEN compatibility
 
   #endif
+
+  #if defined(GENSVE)
+  inline int sve_vector_width(){return svcntb();}
+  #endif
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -773,8 +798,13 @@ namespace Optimization {
   typedef Optimization::veci SIMD_Itype; // Integer type
 
   // prefetch utilities
+
+  #if defined(GENSVE) && defined (SVE_PREFETCH)
+  #include "sve/sve_prefetch.h"
+  #else
   inline void v_prefetch0(int size, const char *ptr){};
   inline void prefetch_HINT_T0(const char *ptr){};
+  #endif
 
   // Function name aliases
   typedef Optimization::Vsplat   VsplatSIMD;
@@ -791,40 +821,12 @@ namespace Optimization {
   typedef Optimization::MultComplex MultComplexSIMD;
   typedef Optimization::MultRealPart MultRealPartSIMD;
   typedef Optimization::MaddRealPart MaddRealPartSIMD;
+/*
+  #if defined (GENSVE) && defined(SVE_MULTCOMPLEX)
+  typedef Optimization::MaddComplex MaddComplexSIMD;
+  #endif
+*/
   typedef Optimization::Conj        ConjSIMD;
   typedef Optimization::TimesMinusI TimesMinusISIMD;
   typedef Optimization::TimesI      TimesISIMD;
 }
-
-/*
-  #if defined(SVE_GROUP_V)
-  #undef SVE_VSPLAT
-  #undef SVE_VSTORE
-  #undef SVE_VSTREAM
-  #undef SVE_VSET
-  #endif
-
-  #if defined(SVE_GROUP_ARITH)
-  #undef SVE_SUM
-  #undef SVE_SUB
-  #undef SVE_MULT
-  #undef SVE_MULTREALPART
-  #undef SVE_MADDREALPART
-  #undef SVE_MULTCOMPLEX
-  #undef SVE_DIV
-  #undef SVE_CONJ
-  #undef SVE_TIMESMINUSI
-  #undef SVE_TIMESI
-  #undef SVE_REDUCE
-  #endif
-
-  #if defined(SVE_GROUP_PREC)
-  #undef SVE_PREC
-  #endif
-
-  #if defined(SVE_GROUP_PERM)
-  #undef SVE_ROTATE
-  #undef SVE_PERMUTE
-  #undef SVE_EXCHANGE
-  #endif
-*/
