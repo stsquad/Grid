@@ -23,7 +23,7 @@
 #include<Grid/algorithms/approx/Remez.h>
 
 // Constructor
-AlgRemez::AlgRemez(double lower, double upper, long precision) 
+AlgRemez::AlgRemez(double lower, double upper, long precision)
 {
   prec = precision;
   bigfloat::setDefaultPrecision(prec);
@@ -96,13 +96,13 @@ void AlgRemez::setBounds(double lower, double upper)
 }
 
 // Generate the rational approximation x^(pnum/pden)
-double AlgRemez::generateApprox(int degree, unsigned long pnum, 
+double AlgRemez::generateApprox(int degree, unsigned long pnum,
 				unsigned long pden)
 {
   return generateApprox(degree, degree, pnum, pden);
 }
 
-double AlgRemez::generateApprox(int num_degree, int den_degree, 
+double AlgRemez::generateApprox(int num_degree, int den_degree,
 				unsigned long pnum, unsigned long pden)
 {
   double *a_param = 0;
@@ -111,7 +111,7 @@ double AlgRemez::generateApprox(int num_degree, int den_degree,
 }
 
 // Generate the rational approximation x^(pnum/pden)
-double AlgRemez::generateApprox(int num_degree, int den_degree, 
+double AlgRemez::generateApprox(int num_degree, int den_degree,
 				unsigned long pnum, unsigned long pden,
 				int a_len, double *a_param, int *a_pow)
 {
@@ -145,14 +145,17 @@ double AlgRemez::generateApprox(int num_degree, int den_degree,
 
   while (spread > tolerance) { //iterate until convergance
 
-    if (iter++%100==0) 
-      std::cout<<"Iteration " <<iter-1<<" spread "<<(double)spread<<" delta "<<(double)delta<<std::endl; 
+    if (iter++%100==0)
+      std::cout<<"Iteration " <<iter-1<<" spread "<<(double)spread<<" delta "<<(double)delta<<std::endl;
 
     equations();
     if (delta < tolerance) {
+      std::cout<<"Delta < tolerance: " << delta << " < " << tolerance << "\n";
       std::cout<<"Delta too small, try increasing precision\n";
       assert(0);
-    };    
+    };
+
+    std::cout<<"Delta , tolerance: " << delta << " , " << tolerance << "\n";
     assert( delta>= tolerance);
 
     search(step);
@@ -168,7 +171,7 @@ double AlgRemez::generateApprox(int num_degree, int den_degree,
   } else {
     foundRoots = 1;
   }
-  
+
   delete [] step;
 
   // Return the maximum error in the approximation
@@ -195,10 +198,10 @@ int AlgRemez::getPFE(double *Res, double *Pole, double *Norm) {
 
   bigfloat *r = new bigfloat[n];
   bigfloat *p = new bigfloat[d];
-  
+
   for (int i=0; i<n; i++) r[i] = roots[i];
   for (int i=0; i<d; i++) p[i] = poles[i];
-  
+
   // Perform a partial fraction expansion
   pfe(r, p, norm);
 
@@ -234,7 +237,7 @@ int AlgRemez::getIPFE(double *Res, double *Pole, double *Norm) {
 
   bigfloat *r = new bigfloat[d];
   bigfloat *p = new bigfloat[n];
-  
+
   // Want the inverse function
   for (int i=0; i<n; i++) {
     r[i] = poles[i];
@@ -331,7 +334,7 @@ void AlgRemez::search(bigfloat *step) {
 	ensign = emsign;
       }
     }
-  
+
     while(yn >= ym) {		// March until error becomes smaller.
       if (++steps > 10) break;
       ym = yn;
@@ -366,7 +369,7 @@ void AlgRemez::search(bigfloat *step) {
     step[i] = q * delta;
   }
   step[neq] = step[neq-1];
-  
+
   for (i = 0; i < neq; i++) {	// Insert new locations for the zeros.
     xm = xx[i] - step[i];
     if (xm <= apstrt) continue;
@@ -387,7 +390,7 @@ void AlgRemez::equations(void) {
 
   bigfloat *AA = new bigfloat[(neq)*(neq)];
   bigfloat *BB = new bigfloat[neq];
-  
+
   for (i = 0; i < neq; i++) {	// set up the equations for solution by simq()
     ip = neq * i;		// offset to 1st element of this row of matrix
     x = xx[i];			// the guess for this row
@@ -427,7 +430,7 @@ bigfloat AlgRemez::approx(const bigfloat x) {
 
   // Work backwards toward the constant term.
   yn = param[n];		// Highest order numerator coefficient
-  for (i = n-1; i >= 0; i--) yn = x * yn  +  param[i]; 
+  for (i = n-1; i >= 0; i--) yn = x * yn  +  param[i];
   yd = x + param[n+d];	// Highest degree coefficient = 1.0
   for (i = n+d-1; i > n; i--) yd = x * yd  +  param[i];
 
@@ -446,7 +449,7 @@ bigfloat AlgRemez::getErr(bigfloat x, int *sign) {
     e = -e;
   }
   else *sign = 1;
-  
+
   return(e);
 }
 
@@ -484,7 +487,7 @@ int AlgRemez::simq(bigfloat A[], bigfloat B[], bigfloat X[], int n) {
 
   nm1 = n - 1;
   // Initialize IPS and X
-  
+
   ij = 0;
   for (i = 0; i < n; i++) {
     IPS[i] = i;
@@ -501,11 +504,11 @@ int AlgRemez::simq(bigfloat A[], bigfloat B[], bigfloat X[], int n) {
     }
     X[i] = (bigfloat)1.0 / rownrm;
   }
-  
+
   for (k = 0; k < nm1; k++) {
     big = 0.0;
     idxpiv = 0;
-    
+
     for (i = k; i < n; i++) {
       ip = IPS[i];
       ipk = n*ip + k;
@@ -515,7 +518,7 @@ int AlgRemez::simq(bigfloat A[], bigfloat B[], bigfloat X[], int n) {
 	idxpiv = i;
       }
     }
-    
+
     if (big == (bigfloat)0l) {
       std::cout<<"simq big=0\n";
       delete [] IPS;
@@ -551,7 +554,7 @@ int AlgRemez::simq(bigfloat A[], bigfloat B[], bigfloat X[], int n) {
     return(3);
   }
 
-  
+
   ip = IPS[0];
   X[0] = B[ip];
   for (i = 1; i < n; i++) {
@@ -564,10 +567,10 @@ int AlgRemez::simq(bigfloat A[], bigfloat B[], bigfloat X[], int n) {
     }
     X[i] = B[ip] - sum;
   }
-  
+
   ipn = n * IPS[n-1] + n - 1;
   X[n-1] = X[n-1] / A[ipn];
-  
+
   for (iback = 1; iback < n; iback++) {
     //i goes (n-1),...,1
     i = nm1 - iback;
@@ -575,11 +578,11 @@ int AlgRemez::simq(bigfloat A[], bigfloat B[], bigfloat X[], int n) {
     nip = n*ip;
     sum = 0.0;
     aa = A+nip+i+1;
-    for (j= i + 1; j < n; j++) 
+    for (j= i + 1; j < n; j++)
       sum += *aa++ * X[j];
     X[i] = (X[i] - sum) / A[nip+i];
   }
-  
+
   delete [] IPS;
   return(0);
 }
@@ -606,7 +609,7 @@ int AlgRemez::root() {
     poly[0] = -poly[0]/roots[i];
     for (j=1; j<=i; j++) poly[j] = (poly[j-1] - poly[j])/roots[i];
   }
-  
+
  // Now find the denominator roots
   poly[d] = 1l;
   for (i=0; i<d; i++) poly[i] = param[n+1+i];
@@ -644,7 +647,7 @@ bigfloat AlgRemez::polyDiff(bigfloat x, bigfloat *poly, long size) {
 
 
 // Newton's method to calculate roots
-bigfloat AlgRemez::rtnewt(bigfloat *poly, long i, bigfloat x1, 
+bigfloat AlgRemez::rtnewt(bigfloat *poly, long i, bigfloat x1,
 			  bigfloat x2, bigfloat xacc) {
   int j;
   bigfloat df, dx, f, rtn;
@@ -670,7 +673,7 @@ void AlgRemez::pfe(bigfloat *res, bigfloat *poles, bigfloat norm) {
   bigfloat *numerator = new bigfloat[n];
   bigfloat *denominator = new bigfloat[d];
 
-  // Construct the polynomials explicitly 
+  // Construct the polynomials explicitly
   for (i=1; i<n; i++) {
     numerator[i] = 0l;
     denominator[i] = 0l;
@@ -704,7 +707,7 @@ void AlgRemez::pfe(bigfloat *res, bigfloat *poles, bigfloat norm) {
       if (i!=j) res[i] /= poles[i]-poles[j];
     }
     res[i] *= norm;
-  }  
+  }
 
   // res now holds the residues
   j = 0;
@@ -757,4 +760,3 @@ void AlgRemez::csv(std::ostream & os)
   }
   return;
 }
-

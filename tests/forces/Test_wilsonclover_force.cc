@@ -93,6 +93,9 @@ int main(int argc, char **argv)
   ////////////////////////////////////
   RealD dt = 0.00005;
   RealD Hmom = 0.0;
+
+  std::cout << GridLogMessage << "Hmom define: " << Hmom << std::endl;
+
   RealD Hmomprime = 0.0;
   RealD Hmompp = 0.0;
   LatticeColourMatrix mommu(&Grid);
@@ -104,7 +107,15 @@ int main(int argc, char **argv)
   {
     // Traceless antihermitian momentum; gaussian in lie alg
     SU3::GaussianFundamentalLieAlgebraMatrix(pRNG, mommu);
+
+//    std::cout << GridLogMessage << "trace(mommu * mommu): " << trace(mommu * mommu) << std::endl;
+    std::cout << GridLogMessage << "sum(trace(mommu * mommu)): " << sum(trace(mommu * mommu)) << std::endl;
+    std::cout << GridLogMessage << "real(sum(trace(mommu * mommu))): " << real(sum(trace(mommu * mommu))) << std::endl;
+
     Hmom -= real(sum(trace(mommu * mommu)));
+
+    std::cout << GridLogMessage << "Hmom loop: " << Hmom << std::endl;
+
     PokeIndex<LorentzIndex>(mom, mommu, mu);
 
     parallel_for(int ss = 0; ss < mom._grid->oSites(); ss++)

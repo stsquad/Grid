@@ -2,7 +2,7 @@
 
     Grid physics library, www.github.com/paboyle/Grid
 
-    Source file: ./lib/simd/Grid_generic.h
+    Source file: ./lib/simd/Grid_gen_sve.h
 
     Copyright (C) 2018
 
@@ -34,8 +34,142 @@ Author: Antonin Portelli <antonin.portelli@me.com>
 
 #include "Grid_generic_types.h"
 
+  #if defined(GENSVE)
+#ifdef __ARM_FEATURE_SVE
+#include <arm_sve.h>
+#else
+#pragma error "Missing SVE feature"
+#endif /* __ARM_FEATURE_SVE */
+#endif
+
 namespace Grid {
 namespace Optimization {
+
+  #if defined(GENSVE)
+  #include "sve/sve_acle.h"
+
+  #if defined(SVE_FULL)
+  #ifndef SVE_GROUP_V
+  #define SVE_GROUP_V
+  #endif
+  #ifndef SVE_GROUP_ARITH
+  #define SVE_GROUP_ARITH
+  #endif
+  #ifndef SVE_GROUP_PREC
+  #define SVE_GROUP_PREC
+  #endif
+  #ifndef SVE_GROUP_PERM
+  #define SVE_GROUP_PERM
+  #endif
+  #ifndef SVE_GROUP_PREFETCH
+  #define SVE_GROUP_PREFETCH
+  #endif
+  #elif defined(SVE_FULL_SLS)
+  #ifndef SVE_GROUP_V
+  #define SVE_GROUP_V
+  #endif
+  #ifndef SVE_GROUP_ARITH_SLS
+  #define SVE_GROUP_ARITH_SLS
+  #endif
+  #ifndef SVE_GROUP_PREC
+  #define SVE_GROUP_PREC
+  #endif
+  #ifndef SVE_GROUP_PERM
+  #define SVE_GROUP_PERM
+  #endif
+  #ifndef SVE_GROUP_PREFETCH
+  #define SVE_GROUP_PREFETCH
+  #endif
+  #elif defined(SVE_FULL_REF)
+  #ifndef SVE_GROUP_V
+  #define SVE_GROUP_V
+  #endif
+  #ifndef SVE_GROUP_ARITH_REF
+  #define SVE_GROUP_ARITH_REF
+  #endif
+  #ifndef SVE_GROUP_PREC
+  #define SVE_GROUP_PREC
+  #endif
+  #ifndef SVE_GROUP_PERM
+  #define SVE_GROUP_PERM
+  #endif
+  #ifndef SVE_GROUP_PREFETCH
+  #define SVE_GROUP_PREFETCH
+  #endif
+  #endif
+
+  #if defined(SVE_GROUP_V)
+  #pragma message("enabling SVE_GROUP_V")
+  #define SVE_VSPLAT
+  #define SVE_VSTORE
+  #define SVE_VSTREAM
+  #define SVE_VSET
+  #endif
+
+  #if defined(SVE_GROUP_ARITH)
+  #pragma message("enabling SVE_GROUP_ARITH")
+//  #define SVE_SUM
+  #define SVE_SUB
+  #define SVE_MULT
+  #define SVE_MULTREALPART
+  #define SVE_MADDREALPART
+  #define SVE_MULTCOMPLEX
+  #define SVE_DIV
+  #define SVE_CONJ
+  #define SVE_TIMESMINUSI
+  #define SVE_TIMESI
+  #define SVE_REDUCE
+  #elif defined(SVE_GROUP_ARITH_SLS)
+  #pragma message("enabling SVE_GROUP_ARITH_SLS")
+//  #define SVE_SUM
+  #define SVE_SUB
+  #define SVE_MULT
+  #define SVE_MULTREALPART_SLS
+  #define SVE_MADDREALPART_SLS
+  #define SVE_MULTCOMPLEX_SLS
+  #define SVE_DIV
+  #define SVE_CONJ_SLS
+  #define SVE_TIMESMINUSI_SLS
+  #define SVE_TIMESI_SLS
+  #define SVE_REDUCE
+  #elif defined(SVE_GROUP_ARITH_REF)
+  #pragma message("enabling SVE_GROUP_ARITH_REF")
+//  #define SVE_SUM_REF
+  #define SVE_SUB_REF
+  #define SVE_MULT_REF
+  #define SVE_MULTREALPART_REF
+  #define SVE_MADDREALPART_REF
+  #define SVE_MULTCOMPLEX_REF
+  #define SVE_DIV_REF
+  #define SVE_CONJ_REF
+  #define SVE_TIMESMINUSI_REF
+  #define SVE_TIMESI_REF
+  #define SVE_REDUCE_REF
+  #endif
+
+  #if defined(SVE_GROUP_PREC)
+  //#pragma message("enabling SVE_GROUP_PREC")
+  //#define SVE_PREC
+  #endif
+
+  #if defined(SVE_GROUP_PERM)
+  #pragma message("enabling SVE_GROUP_PERM")
+  #define SVE_ROTATE
+  #define SVE_PERMUTE
+  #define SVE_EXCHANGE
+  #endif
+
+  #if defined(SVE_GROUP_PREFETCH)
+//  #pragma message("enabling SVE_GROUP_PREFETCH")
+//  #define SVE_PREFETCH
+  #endif
+
+
+  #endif // GENSVE
+
+  #if defined(GENSVE) && defined(SVE_VSPLAT)
+  #include "sve/sve_vsplat.h"
+  #else
 
   struct Vsplat{
     // Complex
@@ -66,6 +200,12 @@ namespace Optimization {
     }
   };
 
+  #endif
+
+  #if defined(GENSVE) && defined(SVE_VSTORE)
+  #include "sve/sve_vstore.h"
+  #else
+
   struct Vstore{
     // Real
     template <typename T>
@@ -74,6 +214,12 @@ namespace Optimization {
     }
   };
 
+  #endif
+
+  #if defined(GENSVE) && defined(SVE_VSTREAM)
+  #include "sve/sve_vstream.h"
+  #else
+
   struct Vstream{
     // Real
     template <typename T>
@@ -81,6 +227,12 @@ namespace Optimization {
       *((vec<T> *)a) = b;
     }
   };
+
+  #endif
+
+  #if defined(GENSVE) && defined(SVE_VSET)
+  #include "sve/sve_vset.h"
+  #else
 
   struct Vset{
     // Complex
@@ -108,9 +260,18 @@ namespace Optimization {
     }
   };
 
+  #endif
+
   /////////////////////////////////////////////////////
   // Arithmetic operations
   /////////////////////////////////////////////////////
+
+  #if defined(GENSVE) && defined(SVE_SUM_REF)
+  #include "sve/sve_sum_ref.h"
+  #elif defined(GENSVE) && defined(SVE_SUM)
+  #include "sve/sve_sum.h"
+  #else
+
   struct Sum{
     // Complex/Real
     template <typename T>
@@ -125,6 +286,14 @@ namespace Optimization {
       return out;
     }
   };
+
+  #endif
+
+  #if defined(GENSVE) && defined(SVE_SUB_REF)
+  #include "sve/sve_sub_ref.h"
+  #elif defined(GENSVE) && defined(SVE_SUB)
+  #include "sve/sve_sub.h"
+  #else
 
   struct Sub{
     // Complex/Real
@@ -141,6 +310,14 @@ namespace Optimization {
     }
   };
 
+  #endif
+
+  #if defined(GENSVE) && defined(SVE_MULT_REF)
+  #include "sve/sve_mult_ref.h"
+  #elif defined(GENSVE) && defined(SVE_MULT)
+  #include "sve/sve_mult.h"
+  #else
+
   struct Mult{
     // Real
     template <typename T>
@@ -156,9 +333,15 @@ namespace Optimization {
     }
   };
 
-  #define cmul(a, b, c, i)\
-  c[i]   = a[i]*b[i]   - a[i+1]*b[i+1];\
-  c[i+1] = a[i]*b[i+1] + a[i+1]*b[i];
+  #endif
+
+  #if defined(GENSVE) && defined(SVE_MULTREALPART_REF)
+  #include "sve/sve_multrealpart_ref.h"
+  #elif defined(GENSVE) && defined(SVE_MULTREALPART_SLS)
+  #include "sve/sve_multrealpart_sls.h"
+  #elif defined(GENSVE) && defined(SVE_MULTREALPART)
+  #include "sve/sve_multrealpart.h"
+  #else
 
   struct MultRealPart{
     template <typename T>
@@ -174,6 +357,16 @@ namespace Optimization {
     }
   };
 
+  #endif
+
+  #if defined(GENSVE) && defined(SVE_MADDREALPART_REF)
+  #include "sve/sve_maddrealpart_ref.h"
+  #elif defined(GENSVE) && defined(SVE_MADDREALPART_SLS)
+  #include "sve/sve_maddrealpart_sls.h"
+  #elif defined(GENSVE) && defined(SVE_MADDREALPART)
+  #include "sve/sve_maddrealpart.h"
+  #else
+
   struct MaddRealPart{
     template <typename T>
     inline vec<T> operator()(const vec<T> &a, const vec<T> &b, const vec<T> &c){
@@ -187,6 +380,20 @@ namespace Optimization {
       return out;
     }
   };
+
+  #endif
+
+  #if defined(GENSVE) && defined(SVE_MULTCOMPLEX_REF)
+  #include "sve/sve_multcomplex_ref.h"
+  #elif defined(GENSVE) && defined(SVE_MULTCOMPLEX_SLS)
+  #include "sve/sve_multcomplex_sls.h"
+  #elif defined(GENSVE) && defined(SVE_MULTCOMPLEX)
+  #include "sve/sve_multcomplex.h"
+  #else
+
+  #define cmul(a, b, c, i)\
+  c[i]   = a[i]*b[i]   - a[i+1]*b[i+1];\
+  c[i+1] = a[i]*b[i+1] + a[i+1]*b[i];
 
   struct MultComplex{
     // Complex
@@ -205,6 +412,20 @@ namespace Optimization {
 
   #undef cmul
 
+  #endif
+
+/*
+  #if defined(GENSVE) && defined(SVE_MADDCOMPLEX)
+  #include "sve/sve_maddcomplex.h"
+  #endif
+*/
+
+  #if defined(GENSVE) && defined(SVE_DIV_REF)
+  #include "sve/sve_div_ref.h"
+  #elif defined(GENSVE) && defined(SVE_DIV)
+  #include "sve/sve_div.h"
+  #else
+
   struct Div{
     // Real
     template <typename T>
@@ -219,6 +440,16 @@ namespace Optimization {
       return out;
     }
   };
+
+  #endif
+
+  #if defined(GENSVE) && defined(SVE_CONJ_REF)
+  #include "sve/sve_conj_ref.h"
+  #elif defined(GENSVE) && defined(SVE_CONJ_SLS)
+  #include "sve/sve_conj_sls.h"
+  #elif defined(GENSVE) && defined(SVE_CONJ)
+  #include "sve/sve_conj.h"
+  #else
 
   #define conj(a, b, i)\
   b[i]   = a[i];\
@@ -241,6 +472,16 @@ namespace Optimization {
 
   #undef conj
 
+  #endif
+
+  #if defined(GENSVE) && defined(SVE_TIMESMINUSI_REF)
+  #include "sve/sve_timesminusi_ref.h"
+  #elif defined(GENSVE) && defined(SVE_TIMESMINUSI_SLS)
+  #include "sve/sve_timesminusi_sls.h"
+  #elif defined(GENSVE) && defined(SVE_TIMESMINUSI)
+  #include "sve/sve_timesminusi.h"
+  #else
+
   #define timesmi(a, b, i)\
   b[i]   = a[i+1];\
   b[i+1] = -a[i];
@@ -262,6 +503,16 @@ namespace Optimization {
 
   #undef timesmi
 
+  #endif
+
+  #if defined(GENSVE) && defined(SVE_TIMESI_REF)
+  #include "sve/sve_timesi_ref.h"
+  #elif defined(GENSVE) && defined(SVE_TIMESI_SLS)
+  #include "sve/sve_timesi_sls.h"
+  #elif defined(GENSVE) && defined(SVE_TIMESI)
+  #include "sve/sve_timesi.h"
+  #else
+
   #define timesi(a, b, i)\
   b[i]   = -a[i+1];\
   b[i+1] = a[i];
@@ -282,6 +533,12 @@ namespace Optimization {
   };
 
   #undef timesi
+
+  #endif
+
+  #if defined(GENSVE) && defined(SVE_PREC)
+  #include "sve/sve_prec.h"
+  #else
 
   struct PrecisionChange {
     static inline vech StoH (const vecf &a, const vecf &b) {
@@ -341,8 +598,15 @@ namespace Optimization {
     }
   };
 
+  #endif
+
   //////////////////////////////////////////////
   // Exchange support
+
+  #if defined(GENSVE) && defined(SVE_EXCHANGE)
+  #include "sve/sve_exchange.h"
+  #else
+
   struct Exchange{
 
     template <typename T,int n>
@@ -377,6 +641,12 @@ namespace Optimization {
     };
   };
 
+  #endif
+
+
+  #if defined(GENSVE) && defined(SVE_PERMUTE)
+  #include "sve/sve_permute.h"
+  #else
 
   //////////////////////////////////////////////
   // Some Template specialization
@@ -405,6 +675,12 @@ namespace Optimization {
   #undef perm
   #undef DECL_PERMUTE_N
 
+  #endif
+
+  #if defined(GENSVE) && defined(SVE_ROTATE)
+  #include "sve/sve_rotate.h"
+  #else
+
   #define rot(a, b, n, w)\
   VECTOR_FOR(i, w, 1)\
   {\
@@ -428,6 +704,12 @@ namespace Optimization {
   };
 
   #undef rot
+
+  #endif
+
+  #if defined(GENSVE) && defined(SVE_REDUCE)
+  #include "sve/sve_reduce.h"
+  #else
 
   #define acc(v, a, off, step, n)\
   for (unsigned int i = off; i < n; i += step)\
@@ -499,6 +781,12 @@ namespace Optimization {
   }
 
   #undef acc  // EIGEN compatibility
+
+  #endif
+
+  #if defined(GENSVE)
+  inline int sve_vector_width(){return svcntb();}
+  #endif
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -510,8 +798,13 @@ namespace Optimization {
   typedef Optimization::veci SIMD_Itype; // Integer type
 
   // prefetch utilities
+
+  #if defined(GENSVE) && defined (SVE_PREFETCH)
+  #include "sve/sve_prefetch.h"
+  #else
   inline void v_prefetch0(int size, const char *ptr){};
   inline void prefetch_HINT_T0(const char *ptr){};
+  #endif
 
   // Function name aliases
   typedef Optimization::Vsplat   VsplatSIMD;
@@ -528,6 +821,11 @@ namespace Optimization {
   typedef Optimization::MultComplex MultComplexSIMD;
   typedef Optimization::MultRealPart MultRealPartSIMD;
   typedef Optimization::MaddRealPart MaddRealPartSIMD;
+/*
+  #if defined (GENSVE) && defined(SVE_MULTCOMPLEX)
+  typedef Optimization::MaddComplex MaddComplexSIMD;
+  #endif
+*/
   typedef Optimization::Conj        ConjSIMD;
   typedef Optimization::TimesMinusI TimesMinusISIMD;
   typedef Optimization::TimesI      TimesISIMD;

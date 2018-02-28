@@ -1,6 +1,6 @@
     /*************************************************************************************
 
-    Grid physics library, www.github.com/paboyle/Grid 
+    Grid physics library, www.github.com/paboyle/Grid
 
     Source file: ./tests/Test_contfrac_force.cc
 
@@ -55,18 +55,18 @@ int main (int argc, char ** argv)
   std::cout<<GridLogMessage << "Grid is setup to use "<<threads<<" threads"<<std::endl;
 
   LatticeFermion phi        (FGrid); gaussian(RNG5,phi);
-  LatticeFermion Mphi       (FGrid); 
-  LatticeFermion MphiPrime  (FGrid); 
+  LatticeFermion Mphi       (FGrid);
+  LatticeFermion MphiPrime  (FGrid);
 
   LatticeGaugeField U(UGrid);
 
   SU3::HotConfiguration(RNG4,U);
-  
+
   ////////////////////////////////////
   // Unmodified matrix element
   ////////////////////////////////////
-  RealD mass=0.01; 
-  RealD M5=1.8; 
+  RealD mass=0.01;
+  RealD M5=1.8;
   OverlapWilsonContFracTanhFermionR Dcf(U,*FGrid,*FrbGrid,*UGrid,*UrbGrid,mass,M5,1.0);
   Dcf.M   (phi,Mphi);
 
@@ -75,22 +75,22 @@ int main (int argc, char ** argv)
   // get the deriv of phidag MdagM phi with respect to "U"
   LatticeGaugeField UdSdU(UGrid);
   LatticeGaugeField tmp(UGrid);
-  
+
 
   Dcf.MDeriv(tmp , Mphi,  phi,DaggerNo );  UdSdU=tmp;
-  Dcf.MDeriv(tmp , phi,  Mphi,DaggerYes ); UdSdU=(UdSdU+tmp);  
-  
+  Dcf.MDeriv(tmp , phi,  Mphi,DaggerYes ); UdSdU=(UdSdU+tmp);
+
   LatticeFermion Ftmp      (FGrid);
 
   ////////////////////////////////////
-  // Modify the gauge field a little 
+  // Modify the gauge field a little
   ////////////////////////////////////
   RealD dt = 0.0001;
 
-  LatticeColourMatrix mommu(UGrid); 
-  LatticeColourMatrix forcemu(UGrid); 
-  LatticeGaugeField mom(UGrid); 
-  LatticeGaugeField Uprime(UGrid); 
+  LatticeColourMatrix mommu(UGrid);
+  LatticeColourMatrix forcemu(UGrid);
+  LatticeGaugeField mom(UGrid);
+  LatticeGaugeField Uprime(UGrid);
 
   for(int mu=0;mu<Nd;mu++){
 
@@ -102,7 +102,7 @@ int main (int argc, char ** argv)
     parallel_for(auto i=mom.begin();i<mom.end();i++){
       Uprime[i](mu) =
 	  U[i](mu)
-	+ mom[i](mu)*U[i](mu)*dt 
+	+ mom[i](mu)*U[i](mu)*dt
 	+ mom[i](mu) *mom[i](mu) *U[i](mu)*(dt*dt/2.0)
 	+ mom[i](mu) *mom[i](mu) *mom[i](mu) *U[i](mu)*(dt*dt*dt/6.0)
 	+ mom[i](mu) *mom[i](mu) *mom[i](mu) *mom[i](mu) *U[i](mu)*(dt*dt*dt*dt/24.0)
@@ -112,7 +112,7 @@ int main (int argc, char ** argv)
     }
 
   }
-  
+
   Dcf.ImportGauge(Uprime);
   Dcf.M          (phi,MphiPrime);
 
@@ -145,6 +145,7 @@ int main (int argc, char ** argv)
   std::cout << GridLogMessage << " Sprime "<<Sprime<<std::endl;
   std::cout << GridLogMessage << "dS      "<<Sprime-S<<std::endl;
   std::cout << GridLogMessage << "predict dS    "<< dSpred <<std::endl;
+  std::cout << GridLogMessage << "fabs(real(Sprime-S-dSpred))    "<< fabs(real(Sprime-S-dSpred)) <<std::endl;
   assert( fabs(real(Sprime-S-dSpred)) < 1.0e-2 ) ;
 
   std::cout<< GridLogMessage << "Done" <<std::endl;

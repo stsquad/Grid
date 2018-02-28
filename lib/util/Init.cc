@@ -208,6 +208,16 @@ static MemoryStats dbgMemStats;
 
 void Grid_init(int *argc,char ***argv)
 {
+
+  #if defined(__ARM_FEATURE_SVE)
+  uint64_t sve_width = Optimization::sve_vector_width();
+  if (sve_width != GEN_SIMD_WIDTH) {
+    std::cout << "Grid was compiled for " << GEN_SIMD_WIDTH << " byte vector width." << '\n';
+    std::cout << "This architecture has " << sve_width << " byte vector width." << '\n';
+    exit(EXIT_FAILURE);
+  }
+  #endif
+
   GridLogger::GlobalStopWatch.Start();
 
   std::string arg;
@@ -236,7 +246,7 @@ void Grid_init(int *argc,char ***argv)
 
   if( !GridCmdOptionExists(*argv,*argv+*argc,"--debug-stdout") ){
     Grid_quiesce_nodes();
-  } else { 
+  } else {
     FILE *fp;
     std::ostringstream fname;
     fname<<"Grid.stdout.";
@@ -259,22 +269,22 @@ void Grid_init(int *argc,char ***argv)
   ////////////////////////////////////
   // Banner
   ////////////////////////////////////
-  if ( CartesianCommunicator::RankWorld() == 0 ) { 
+  if ( CartesianCommunicator::RankWorld() == 0 ) {
     std::cout <<std::endl;
-    std::cout  << "__|__|__|__|__|__|__|__|__|__|__|__|__|__|__"<<std::endl; 
-    std::cout  << "__|__|__|__|__|__|__|__|__|__|__|__|__|__|__"<<std::endl; 
-    std::cout  << "__|_ |  |  |  |  |  |  |  |  |  |  |  | _|__"<<std::endl; 
-    std::cout  << "__|_                                    _|__"<<std::endl; 
+    std::cout  << "__|__|__|__|__|__|__|__|__|__|__|__|__|__|__"<<std::endl;
+    std::cout  << "__|__|__|__|__|__|__|__|__|__|__|__|__|__|__"<<std::endl;
+    std::cout  << "__|_ |  |  |  |  |  |  |  |  |  |  |  | _|__"<<std::endl;
+    std::cout  << "__|_                                    _|__"<<std::endl;
     std::cout  << "__|_   GGGG    RRRR    III    DDDD      _|__"<<std::endl;
     std::cout  << "__|_  G        R   R    I     D   D     _|__"<<std::endl;
     std::cout  << "__|_  G        R   R    I     D    D    _|__"<<std::endl;
     std::cout  << "__|_  G  GG    RRRR     I     D    D    _|__"<<std::endl;
     std::cout  << "__|_  G   G    R  R     I     D   D     _|__"<<std::endl;
     std::cout  << "__|_   GGGG    R   R   III    DDDD      _|__"<<std::endl;
-    std::cout  << "__|_                                    _|__"<<std::endl; 
-    std::cout  << "__|__|__|__|__|__|__|__|__|__|__|__|__|__|__"<<std::endl; 
-    std::cout  << "__|__|__|__|__|__|__|__|__|__|__|__|__|__|__"<<std::endl; 
-    std::cout  << "  |  |  |  |  |  |  |  |  |  |  |  |  |  |  "<<std::endl; 
+    std::cout  << "__|_                                    _|__"<<std::endl;
+    std::cout  << "__|__|__|__|__|__|__|__|__|__|__|__|__|__|__"<<std::endl;
+    std::cout  << "__|__|__|__|__|__|__|__|__|__|__|__|__|__|__"<<std::endl;
+    std::cout  << "  |  |  |  |  |  |  |  |  |  |  |  |  |  |  "<<std::endl;
     std::cout << std::endl;
     std::cout << std::endl;
     std::cout << "Copyright (C) 2015 Peter Boyle, Azusa Yamaguchi, Guido Cossu, Antonin Portelli and other authors"<<std::endl;
@@ -317,16 +327,16 @@ void Grid_init(int *argc,char ***argv)
     std::cout<<GridLogMessage<<std::endl;
     std::cout<<GridLogMessage<<"Geometry:"<<std::endl;
     std::cout<<GridLogMessage<<std::endl;
-    std::cout<<GridLogMessage<<"  --mpi n.n.n.n   : default MPI decomposition"<<std::endl;    
+    std::cout<<GridLogMessage<<"  --mpi n.n.n.n   : default MPI decomposition"<<std::endl;
     std::cout<<GridLogMessage<<"  --threads n     : default number of OMP threads"<<std::endl;
     std::cout<<GridLogMessage<<"  --grid n.n.n.n  : default Grid size"<<std::endl;
     std::cout<<GridLogMessage<<"  --shm  M        : allocate M megabytes of shared memory for comms"<<std::endl;
-    std::cout<<GridLogMessage<<"  --shm-hugepages : use explicit huge pages in mmap call "<<std::endl;    
+    std::cout<<GridLogMessage<<"  --shm-hugepages : use explicit huge pages in mmap call "<<std::endl;
     std::cout<<GridLogMessage<<std::endl;
     std::cout<<GridLogMessage<<"Verbose and debug:"<<std::endl;
     std::cout<<GridLogMessage<<std::endl;
     std::cout<<GridLogMessage<<"  --log list      : comma separated list from Error,Warning,Message,Performance,Iterative,Integrator,Debug,Colours"<<std::endl;
-    std::cout<<GridLogMessage<<"  --decomposition : report on default omp,mpi and simd decomposition"<<std::endl;    
+    std::cout<<GridLogMessage<<"  --decomposition : report on default omp,mpi and simd decomposition"<<std::endl;
     std::cout<<GridLogMessage<<"  --debug-signals : catch sigsegv and print a blame report"<<std::endl;
     std::cout<<GridLogMessage<<"  --debug-stdout  : print stdout from EVERY node"<<std::endl;
     std::cout<<GridLogMessage<<"  --debug-mem     : print Grid allocator activity"<<std::endl;
@@ -334,16 +344,16 @@ void Grid_init(int *argc,char ***argv)
     std::cout<<GridLogMessage<<std::endl;
     std::cout<<GridLogMessage<<"Performance:"<<std::endl;
     std::cout<<GridLogMessage<<std::endl;
-    std::cout<<GridLogMessage<<"  --comms-concurrent : Asynchronous MPI calls; several dirs at a time "<<std::endl;    
-    std::cout<<GridLogMessage<<"  --comms-sequential : Synchronous MPI calls; one dirs at a time "<<std::endl;    
-    std::cout<<GridLogMessage<<"  --comms-overlap    : Overlap comms with compute "<<std::endl;    
+    std::cout<<GridLogMessage<<"  --comms-concurrent : Asynchronous MPI calls; several dirs at a time "<<std::endl;
+    std::cout<<GridLogMessage<<"  --comms-sequential : Synchronous MPI calls; one dirs at a time "<<std::endl;
+    std::cout<<GridLogMessage<<"  --comms-overlap    : Overlap comms with compute "<<std::endl;
     std::cout<<GridLogMessage<<std::endl;
-    std::cout<<GridLogMessage<<"  --dslash-generic: Wilson kernel for generic Nc"<<std::endl;    
-    std::cout<<GridLogMessage<<"  --dslash-unroll : Wilson kernel for Nc=3"<<std::endl;    
-    std::cout<<GridLogMessage<<"  --dslash-asm    : Wilson kernel for AVX512"<<std::endl;    
+    std::cout<<GridLogMessage<<"  --dslash-generic: Wilson kernel for generic Nc"<<std::endl;
+    std::cout<<GridLogMessage<<"  --dslash-unroll : Wilson kernel for Nc=3"<<std::endl;
+    std::cout<<GridLogMessage<<"  --dslash-asm    : Wilson kernel for AVX512"<<std::endl;
     std::cout<<GridLogMessage<<std::endl;
-    std::cout<<GridLogMessage<<"  --lebesgue      : Cache oblivious Lebesgue curve/Morton order/Z-graph stencil looping"<<std::endl;    
-    std::cout<<GridLogMessage<<"  --cacheblocking n.m.o.p : Hypercuboidal cache blocking"<<std::endl;    
+    std::cout<<GridLogMessage<<"  --lebesgue      : Cache oblivious Lebesgue curve/Morton order/Z-graph stencil looping"<<std::endl;
+    std::cout<<GridLogMessage<<"  --cacheblocking n.m.o.p : Hypercuboidal cache blocking"<<std::endl;
     std::cout<<GridLogMessage<<std::endl;
     exit(EXIT_SUCCESS);
   }
@@ -412,7 +422,6 @@ void Grid_init(int *argc,char ***argv)
     std::cout<<GridLogMessage<<"\tvComplexF      : "<<sizeof(vComplexF)*8 <<"bits ; " <<GridCmdVectorIntToString(GridDefaultSimd(4,vComplexF::Nsimd()))<<std::endl;
     std::cout<<GridLogMessage<<"\tvComplexD      : "<<sizeof(vComplexD)*8 <<"bits ; " <<GridCmdVectorIntToString(GridDefaultSimd(4,vComplexD::Nsimd()))<<std::endl;
   }
-
 
   Grid_is_initialised = 1;
 }
