@@ -164,6 +164,7 @@ void GridParseLayout(char **argv,int argc,
 {
   mpi =std::vector<int>({1,1,1,1});
   latt=std::vector<int>({8,8,8,8});
+  //latt=std::vector<int>({4,4,4,4});
 
   GridThread::SetMaxThreads();
 
@@ -230,7 +231,8 @@ void Grid_init(int *argc,char ***argv)
     arg= GridCmdOptionPayload(*argv,*argv+*argc,"--shm");
     GridCmdOptionInt(arg,MB);
     uint64_t MB64 = MB;
-    GlobalSharedMemory::MAX_MPI_SHM_BYTES = MB64*1024LL*1024LL;
+    //GlobalSharedMemory::MAX_MPI_SHM_BYTES = MB64*1024LL*1024LL;
+    GlobalSharedMemory::MAX_MPI_SHM_BYTES = 1LL*1024LL*1024LL;
   }
 
   if( GridCmdOptionExists(*argv,*argv+*argc,"--shm-hugepages") ){
