@@ -48,7 +48,6 @@ struct scal {
 int main (int argc, char ** argv)
 {
   typedef typename ImprovedStaggeredFermionR::FermionField FermionField; 
-  typedef typename ImprovedStaggeredFermionR::ComplexField ComplexField; 
   typename ImprovedStaggeredFermionR::ImplParams params; 
 
   Grid_init(&argc,&argv);
@@ -57,7 +56,7 @@ int main (int argc, char ** argv)
   std::vector<int> simd_layout = GridDefaultSimd(Nd,vComplex::Nsimd());
   std::vector<int> mpi_layout  = GridDefaultMpi();
   GridCartesian               Grid(latt_size,simd_layout,mpi_layout);
-  GridRedBlackCartesian     RBGrid(latt_size,simd_layout,mpi_layout);
+  GridRedBlackCartesian     RBGrid(&Grid);
 
   std::vector<int> seeds({1,2,3,4});
   GridParallelRNG          pRNG(&Grid);  pRNG.SeedFixedIntegers(seeds);
@@ -71,17 +70,37 @@ int main (int argc, char ** argv)
     volume=volume*latt_size[mu];
   }  
   
-  RealD mass=0.1;
-  ImprovedStaggeredFermionR Ds(Umu,Umu,Grid,RBGrid,mass);
+  RealD mass=0.003;
+  RealD c1=9.0/8.0;
+  RealD c2=-1.0/24.0;
+  RealD u0=1.0;
+  ImprovedStaggeredFermionR Ds(Umu,Umu,Grid,RBGrid,mass,c1,c2,u0);
 
   FermionField res_o(&RBGrid); 
   FermionField src_o(&RBGrid); 
   pickCheckerboard(Odd,src_o,src);
   res_o=zero;
 
-  SchurDiagMooeeOperator<ImprovedStaggeredFermionR,FermionField> HermOpEO(Ds);
+  SchurStaggeredOperator<ImprovedStaggeredFermionR,FermionField> HermOpEO(Ds);
   ConjugateGradient<FermionField> CG(1.0e-8,10000);
+  double t1=usecond();
   CG(HermOpEO,src_o,res_o);
+  double t2=usecond();
+
+  // Schur solver: uses DeoDoe => volume * 1146
+  double ncall=CG.IterationsToComplete;
+  double flops=(16*(3*(6+8+8)) + 15*3*2)*volume*ncall; // == 66*16 +  == 1146
+
+  std::cout<<GridLogMessage << "usec    =   "<< (t2-t1)<<std::endl;
+  std::cout<<GridLogMessage << "flops   =   "<< flops<<std::endl;
+  std::cout<<GridLogMessage << "mflop/s =   "<< flops/(t2-t1)<<std::endl;
+
+
+
+  FermionField tmp(&RBGrid);
+
+  HermOpEO.Mpc(res_o,tmp);
+  std::cout << "check Mpc resid " << axpy_norm(tmp,-1.0,src_o,tmp)/norm2(src_o) << "\n";
 
   Grid_finalize();
 }

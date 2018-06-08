@@ -4,8 +4,7 @@ Grid physics library, www.github.com/paboyle/Grid
 
 Source file: extras/Hadrons/Global.cc
 
-Copyright (C) 2015
-Copyright (C) 2016
+Copyright (C) 2015-2018
 
 Author: Antonin Portelli <antonin.portelli@me.com>
 
@@ -38,32 +37,38 @@ HadronsLogger Hadrons::HadronsLogWarning(1,"Warning");
 HadronsLogger Hadrons::HadronsLogMessage(1,"Message");
 HadronsLogger Hadrons::HadronsLogIterative(1,"Iterative");
 HadronsLogger Hadrons::HadronsLogDebug(1,"Debug");
+HadronsLogger Hadrons::HadronsLogIRL(1,"IRL");
 
-// pretty size formatting //////////////////////////////////////////////////////
-std::string Hadrons::sizeString(long unsigned int bytes)
-
+void Hadrons::initLogger(void)
 {
-    constexpr unsigned int bufSize = 256;
-    const char             *suffixes[7] = {"", "K", "M", "G", "T", "P", "E"};
-    char                   buf[256];
-    long unsigned int      s     = 0;
-    double                 count = bytes;
-    
-    while (count >= 1024 && s < 7)
-    {
-        s++;
-        count /= 1024;
-    }
-    if (count - floor(count) == 0.0)
-    {
-        snprintf(buf, bufSize, "%d %sB", (int)count, suffixes[s]);
-    }
-    else
-    {
-        snprintf(buf, bufSize, "%.1f %sB", count, suffixes[s]);
-    }
-    
-    return std::string(buf);
+    auto w  = std::string("Hadrons").length();
+    int  cw = 8;
+
+
+    GridLogError.setTopWidth(w);
+    GridLogWarning.setTopWidth(w);
+    GridLogMessage.setTopWidth(w);
+    GridLogIterative.setTopWidth(w);
+    GridLogDebug.setTopWidth(w);
+    GridLogIRL.setTopWidth(w);
+    GridLogError.setChanWidth(cw);
+    GridLogWarning.setChanWidth(cw);
+    GridLogMessage.setChanWidth(cw);
+    GridLogIterative.setChanWidth(cw);
+    GridLogDebug.setChanWidth(cw);
+    GridLogIRL.setChanWidth(cw);
+    HadronsLogError.Active(true);
+    HadronsLogWarning.Active(true);
+    HadronsLogMessage.Active(GridLogMessage.isActive());
+    HadronsLogIterative.Active(GridLogIterative.isActive());
+    HadronsLogDebug.Active(GridLogDebug.isActive());
+    HadronsLogIRL.Active(GridLogIRL.isActive());
+    HadronsLogError.setChanWidth(cw);
+    HadronsLogWarning.setChanWidth(cw);
+    HadronsLogMessage.setChanWidth(cw);
+    HadronsLogIterative.setChanWidth(cw);
+    HadronsLogDebug.setChanWidth(cw);
+    HadronsLogIRL.setChanWidth(cw);
 }
 
 // type utilities //////////////////////////////////////////////////////////////
@@ -79,4 +84,92 @@ std::string Hadrons::typeName(const std::type_info *info)
     free(buf);
     
     return name;
+}
+
+// default writers/readers /////////////////////////////////////////////////////
+#ifdef HAVE_HDF5
+const std::string Hadrons::resultFileExt = "h5";
+#else
+const std::string Hadrons::resultFileExt = "xml";
+#endif
+
+// recursive mkdir /////////////////////////////////////////////////////////////
+int Hadrons::mkdir(const std::string dirName)
+{
+    if (!dirName.empty() and access(dirName.c_str(), R_OK|W_OK|X_OK))
+    {
+        mode_t mode755;
+        char   tmp[MAX_PATH_LENGTH];
+        char   *p = NULL;
+        size_t len;
+
+        mode755 = S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
+
+        snprintf(tmp, sizeof(tmp), "%s", dirName.c_str());
+        len = strlen(tmp);
+        if(tmp[len - 1] == '/')
+        {
+            tmp[len - 1] = 0;
+        }
+        for(p = tmp + 1; *p; p++)
+        {
+            if(*p == '/')
+            {
+                *p = 0;
+                ::mkdir(tmp, mode755);
+                *p = '/';
+            }
+        }
+
+        return ::mkdir(tmp, mode755);
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+std::string Hadrons::basename(const std::string &s)
+{
+    constexpr char sep = '/';
+    size_t         i   = s.rfind(sep, s.length());
+    
+    if (i != std::string::npos)
+    {
+        return s.substr(i+1, s.length() - i);
+    }
+    else
+    {
+        return s;
+    }
+}
+
+std::string Hadrons::dirname(const std::string &s)
+{
+    constexpr char sep = '/';
+    size_t         i   = s.rfind(sep, s.length());
+    
+    if (i != std::string::npos)
+    {
+        return s.substr(0, i);
+    }
+    else
+    {
+        return "";
+    }
+}
+
+void Hadrons::makeFileDir(const std::string filename, GridBase *g)
+{
+    if (g->IsBoss())
+    {
+        std::string dir    = dirname(filename);
+        int         status = mkdir(dir);
+
+        if (status)
+        {
+            HADRONS_ERROR(Io, "cannot create directory '" + dir
+                          + "' ( " + std::strerror(errno) + ")");
+        }
+    }
 }

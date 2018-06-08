@@ -51,7 +51,7 @@ namespace Grid {
 
       virtual void Op     (const Field &in, Field &out) = 0; // Abstract base
       virtual void AdjOp  (const Field &in, Field &out) = 0; // Abstract base
-      virtual void HermOpAndNorm(const Field &in, Field &out,RealD &n1,RealD &n2)=0;
+      virtual void HermOpAndNorm(const Field &in, Field &out,RealD &n1,RealD &n2) = 0;
       virtual void HermOp(const Field &in, Field &out)=0;
     };
 
@@ -162,15 +162,10 @@ namespace Grid {
 	_Mat.M(in,out);
       }
       void HermOpAndNorm(const Field &in, Field &out,RealD &n1,RealD &n2){
-	ComplexD dot;
-
 	_Mat.M(in,out);
 	
-	dot= innerProduct(in,out);
-	n1=real(dot);
-
-	dot = innerProduct(out,out);
-	n2=real(dot);
+	ComplexD dot= innerProduct(in,out); n1=real(dot);
+	n2=norm2(out);
       }
       void HermOp(const Field &in, Field &out){
 	_Mat.M(in,out);
@@ -188,14 +183,16 @@ namespace Grid {
       virtual  RealD Mpc      (const Field &in, Field &out) =0;
       virtual  RealD MpcDag   (const Field &in, Field &out) =0;
       virtual void MpcDagMpc(const Field &in, Field &out,RealD &ni,RealD &no) {
-	Field tmp(in._grid);
+      Field tmp(in._grid);
+      tmp.checkerboard = in.checkerboard;
 	ni=Mpc(in,tmp);
 	no=MpcDag(tmp,out);
       }
-      void HermOpAndNorm(const Field &in, Field &out,RealD &n1,RealD &n2){
+      virtual void HermOpAndNorm(const Field &in, Field &out,RealD &n1,RealD &n2){
+      out.checkerboard = in.checkerboard;
 	MpcDagMpc(in,out,n1,n2);
       }
-      void HermOp(const Field &in, Field &out){
+      virtual void HermOp(const Field &in, Field &out){
 	RealD n1,n2;
 	HermOpAndNorm(in,out,n1,n2);
       }
@@ -212,7 +209,6 @@ namespace Grid {
       void OpDir  (const Field &in, Field &out,int dir,int disp) {
 	assert(0);
       }
-
     };
     template<class Matrix,class Field>
       class SchurDiagMooeeOperator :  public SchurOperatorBase<Field> {
@@ -221,13 +217,15 @@ namespace Grid {
     public:
       SchurDiagMooeeOperator (Matrix &Mat): _Mat(Mat){};
       virtual  RealD Mpc      (const Field &in, Field &out) {
-	Field tmp(in._grid);
-//	std::cout <<"grid pointers: in._grid="<< in._grid << " out._grid=" << out._grid << "  _Mat.Grid=" << _Mat.Grid() << " _Mat.RedBlackGrid=" << _Mat.RedBlackGrid() << std::endl;
+      Field tmp(in._grid);
+      tmp.checkerboard = !in.checkerboard;
+	//std::cout <<"grid pointers: in._grid="<< in._grid << " out._grid=" << out._grid << "  _Mat.Grid=" << _Mat.Grid() << " _Mat.RedBlackGrid=" << _Mat.RedBlackGrid() << std::endl;
 
 	_Mat.Meooe(in,tmp);
 	_Mat.MooeeInv(tmp,out);
 	_Mat.Meooe(out,tmp);
 
+      //std::cout << "cb in " << in.checkerboard << "  cb out " << out.checkerboard << std::endl;
 	_Mat.Mooee(in,out);
 	return axpy_norm(out,-1.0,tmp,out);
       }
@@ -270,7 +268,6 @@ namespace Grid {
 	return axpy_norm(out,-1.0,tmp,in);
       }
     };
-
     template<class Matrix,class Field>
       class SchurDiagTwoOperator :  public SchurOperatorBase<Field> {
     protected:
@@ -299,6 +296,82 @@ namespace Grid {
 	return axpy_norm(out,-1.0,tmp,in);
       }
     };
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    // Left  handed Moo^-1 ; (Moo - Moe Mee^-1 Meo) psi = eta  -->  ( 1 - Moo^-1 Moe Mee^-1 Meo ) psi = Moo^-1 eta
+    // Right handed Moo^-1 ; (Moo - Moe Mee^-1 Meo) Moo^-1 Moo psi = eta  -->  ( 1 - Moe Mee^-1 Meo ) Moo^-1 phi=eta ; psi = Moo^-1 phi
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    template<class Matrix,class Field> using SchurDiagOneRH = SchurDiagTwoOperator<Matrix,Field> ;
+    template<class Matrix,class Field> using SchurDiagOneLH = SchurDiagOneOperator<Matrix,Field> ;
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    //  Staggered use
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    template<class Matrix,class Field>
+      class SchurStaggeredOperator :  public SchurOperatorBase<Field> {
+    protected:
+      Matrix &_Mat;
+      Field tmp;
+      RealD mass;
+      double tMpc;
+      double tIP;
+      double tMeo;
+      double taxpby_norm;
+      uint64_t ncall;
+    public:
+      void Report(void)
+      {
+	std::cout << GridLogMessage << " HermOpAndNorm.Mpc "<< tMpc/ncall<<" usec "<<std::endl;
+	std::cout << GridLogMessage << " HermOpAndNorm.IP  "<< tIP /ncall<<" usec "<<std::endl;
+	std::cout << GridLogMessage << " Mpc.MeoMoe        "<< tMeo/ncall<<" usec "<<std::endl;
+	std::cout << GridLogMessage << " Mpc.axpby_norm    "<< taxpby_norm/ncall<<" usec "<<std::endl;
+      }
+      SchurStaggeredOperator (Matrix &Mat): _Mat(Mat), tmp(_Mat.RedBlackGrid()) 
+      { 
+	assert( _Mat.isTrivialEE() );
+	mass = _Mat.Mass();
+	tMpc=0;
+	tIP =0;
+        tMeo=0;
+        taxpby_norm=0;
+	ncall=0;
+      }
+      virtual void HermOpAndNorm(const Field &in, Field &out,RealD &n1,RealD &n2){
+	ncall++;
+	tMpc-=usecond();
+	n2 = Mpc(in,out);
+	tMpc+=usecond();
+	tIP-=usecond();
+	ComplexD dot= innerProduct(in,out);
+	tIP+=usecond();
+	n1 = real(dot);
+      }
+      virtual void HermOp(const Field &in, Field &out){
+	ncall++;
+	tMpc-=usecond();
+	_Mat.Meooe(in,out);
+	_Mat.Meooe(out,tmp);
+	tMpc+=usecond();
+	taxpby_norm-=usecond();
+	axpby(out,-1.0,mass*mass,tmp,in);
+	taxpby_norm+=usecond();
+      }
+      virtual  RealD Mpc      (const Field &in, Field &out) {
+	tMeo-=usecond();
+	_Mat.Meooe(in,out);
+	_Mat.Meooe(out,tmp);
+	tMeo+=usecond();
+	taxpby_norm-=usecond();
+	RealD nn=axpby_norm(out,-1.0,mass*mass,tmp,in);
+	taxpby_norm+=usecond();
+	return nn;
+      }
+      virtual  RealD MpcDag   (const Field &in, Field &out){
+	return Mpc(in,out);
+      }
+      virtual void MpcDagMpc(const Field &in, Field &out,RealD &ni,RealD &no) {
+	assert(0);// Never need with staggered
+      }
+    };
+    template<class Matrix,class Field> using SchurStagOperator = SchurStaggeredOperator<Matrix,Field>;
 
 
     /////////////////////////////////////////////////////////////
@@ -313,6 +386,14 @@ namespace Grid {
     public:
       virtual void operator() (const Field &in, Field &out) = 0;
     };
+
+    template<class Field> class IdentityLinearFunction : public LinearFunction<Field> {
+    public:
+      void operator() (const Field &in, Field &out){
+	out = in;
+      };
+    };
+
 
     /////////////////////////////////////////////////////////////
     // Base classes for Multishift solvers for operators
@@ -336,6 +417,64 @@ namespace Grid {
      };
     */
 
+  ////////////////////////////////////////////////////////////////////////////////////////////
+  // Hermitian operator Linear function and operator function
+  ////////////////////////////////////////////////////////////////////////////////////////////
+    template<class Field>
+      class HermOpOperatorFunction : public OperatorFunction<Field> {
+      void operator() (LinearOperatorBase<Field> &Linop, const Field &in, Field &out) {
+	Linop.HermOp(in,out);
+      };
+    };
+
+    template<typename Field>
+      class PlainHermOp : public LinearFunction<Field> {
+    public:
+      LinearOperatorBase<Field> &_Linop;
+      
+      PlainHermOp(LinearOperatorBase<Field>& linop) : _Linop(linop) 
+      {}
+      
+      void operator()(const Field& in, Field& out) {
+	_Linop.HermOp(in,out);
+      }
+    };
+
+    template<typename Field>
+    class FunctionHermOp : public LinearFunction<Field> {
+    public:
+      OperatorFunction<Field>   & _poly;
+      LinearOperatorBase<Field> &_Linop;
+      
+      FunctionHermOp(OperatorFunction<Field> & poly,LinearOperatorBase<Field>& linop) 
+	: _poly(poly), _Linop(linop) {};
+      
+      void operator()(const Field& in, Field& out) {
+	_poly(_Linop,in,out);
+      }
+    };
+
+  template<class Field>
+  class Polynomial : public OperatorFunction<Field> {
+  private:
+    std::vector<RealD> Coeffs;
+  public:
+    Polynomial(std::vector<RealD> &_Coeffs) : Coeffs(_Coeffs) { };
+
+    // Implement the required interface
+    void operator() (LinearOperatorBase<Field> &Linop, const Field &in, Field &out) {
+
+      Field AtoN(in._grid);
+      Field Mtmp(in._grid);
+      AtoN = in;
+      out = AtoN*Coeffs[0];
+      for(int n=1;n<Coeffs.size();n++){
+	Mtmp = AtoN;
+	Linop.HermOp(Mtmp,AtoN);
+	out=out+AtoN*Coeffs[n];
+      }
+    };
+  };
 
 }
 

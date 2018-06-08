@@ -4,9 +4,11 @@ Grid physics library, www.github.com/paboyle/Grid
 
 Source file: extras/Hadrons/Modules/MGauge/StochEm.cc
 
-Copyright (C) 2015
-Copyright (C) 2016
+Copyright (C) 2015-2018
 
+Author: Antonin Portelli <antonin.portelli@me.com>
+Author: James Harrison <j.harrison@soton.ac.uk>
+Author: Vera Guelpers <vmg1n14@soton.ac.uk>
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -57,32 +59,27 @@ std::vector<std::string> TStochEm::getOutput(void)
 // setup ///////////////////////////////////////////////////////////////////////
 void TStochEm::setup(void)
 {
-    if (!env().hasRegisteredObject("_" + getName() + "_weight"))
-    {
-        env().registerLattice<EmComp>("_" + getName() + "_weight");
-    }
-    env().registerLattice<EmField>(getName());
+    weightDone_ = env().hasCreatedObject("_" + getName() + "_weight");
+    envCacheLat(EmComp, "_" + getName() + "_weight");
+    envCreateLat(EmField, getName());
 }
 
 // execution ///////////////////////////////////////////////////////////////////
 void TStochEm::execute(void)
 {
-    PhotonR photon(par().gauge, par().zmScheme);
-    EmField &a = *env().createLattice<EmField>(getName());
-    EmComp  *w;
+    LOG(Message) << "Generating stochastic EM potential..." << std::endl;
+
+    std::vector<Real> improvements = strToVec<Real>(par().improvement);
+    PhotonR photon(par().gauge, par().zmScheme, improvements, par().G0_qedInf);
+    auto    &a = envGet(EmField, getName());
+    auto    &w = envGet(EmComp, "_" + getName() + "_weight");
     
-    if (!env().hasCreatedObject("_" + getName() + "_weight"))
+    if (!weightDone_)
     {
-        LOG(Message) << "Caching stochatic EM potential weight (gauge: "
+        LOG(Message) << "Caching stochastic EM potential weight (gauge: "
                      << par().gauge << ", zero-mode scheme: "
                      << par().zmScheme << ")..." << std::endl;
-        w = env().createLattice<EmComp>("_" + getName() + "_weight");
-        photon.StochasticWeight(*w);
+        photon.StochasticWeight(w);
     }
-    else
-    {
-        w = env().getObject<EmComp>("_" + getName() + "_weight");
-    }
-    LOG(Message) << "Generating stochatic EM potential..." << std::endl;
-    photon.StochasticField(a, *env().get4dRng(), *w);
+    photon.StochasticField(a, *env().get4dRng(), w);
 }

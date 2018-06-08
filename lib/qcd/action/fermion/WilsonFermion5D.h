@@ -118,8 +118,9 @@ namespace QCD {
       virtual void DhopDerivEO(GaugeField &mat,const FermionField &U,const FermionField &V,int dag);
       virtual void DhopDerivOE(GaugeField &mat,const FermionField &U,const FermionField &V,int dag);
 
-      void MomentumSpacePropagatorHt(FermionField &out,const FermionField &in,RealD mass) ;
-      void MomentumSpacePropagatorHw(FermionField &out,const FermionField &in,RealD mass) ;
+      void MomentumSpacePropagatorHt_5d(FermionField &out,const FermionField &in,RealD mass,std::vector<double> twist) ;
+      void MomentumSpacePropagatorHt(FermionField &out,const FermionField &in,RealD mass,std::vector<double> twist) ;
+      void MomentumSpacePropagatorHw(FermionField &out,const FermionField &in,RealD mass,std::vector<double> twist) ;
 
       // Implement hopping term non-hermitian hopping term; half cb or both
       // Implement s-diagonal DW
@@ -214,6 +215,21 @@ namespace QCD {
     // Comms buffer
     std::vector<SiteHalfSpinor,alignedAllocator<SiteHalfSpinor> >  comm_buf;
     
+    ///////////////////////////////////////////////////////////////
+    // Conserved current utilities
+    ///////////////////////////////////////////////////////////////
+    void ContractConservedCurrent(PropagatorField &q_in_1,
+                                  PropagatorField &q_in_2,
+                                  PropagatorField &q_out,
+                                  Current curr_type, 
+                                  unsigned int mu);
+    void SeqConservedCurrent(PropagatorField &q_in, 
+                             PropagatorField &q_out,
+                             Current curr_type, 
+                             unsigned int mu,
+                             unsigned int tmin, 
+                             unsigned int tmax,
+			     ComplexField &lattice_cmplx);
   };
 
 }}

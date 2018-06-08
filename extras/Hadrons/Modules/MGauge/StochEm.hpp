@@ -4,9 +4,11 @@ Grid physics library, www.github.com/paboyle/Grid
 
 Source file: extras/Hadrons/Modules/MGauge/StochEm.hpp
 
-Copyright (C) 2015
-Copyright (C) 2016
+Copyright (C) 2015-2018
 
+Author: Antonin Portelli <antonin.portelli@me.com>
+Author: James Harrison <j.harrison@soton.ac.uk>
+Author: Vera Guelpers <vmg1n14@soton.ac.uk>
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -44,7 +46,9 @@ class StochEmPar: Serializable
 public:
     GRID_SERIALIZABLE_CLASS_MEMBERS(StochEmPar,
                                     PhotonR::Gauge,    gauge,
-                                    PhotonR::ZmScheme, zmScheme);
+                                    PhotonR::ZmScheme, zmScheme,
+                                    std::string,       improvement,
+                                    Real,              G0_qedInf);
 };
 
 class TStochEm: public Module<StochEmPar>
@@ -56,17 +60,20 @@ public:
     // constructor
     TStochEm(const std::string name);
     // destructor
-    virtual ~TStochEm(void) = default;
+    virtual ~TStochEm(void) {};
     // dependency relation
     virtual std::vector<std::string> getInput(void);
     virtual std::vector<std::string> getOutput(void);
+protected:
     // setup
     virtual void setup(void);
     // execution
     virtual void execute(void);
+private:
+    bool    weightDone_;
 };
 
-MODULE_REGISTER_NS(StochEm, TStochEm, MGauge);
+MODULE_REGISTER(StochEm, TStochEm, MGauge);
 
 END_MODULE_NAMESPACE
 

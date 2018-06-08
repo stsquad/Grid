@@ -57,7 +57,7 @@ int main (int argc, char ** argv)
   std::vector<int> simd_layout = GridDefaultSimd(Nd,vComplex::Nsimd());
   std::vector<int> mpi_layout  = GridDefaultMpi();
   GridCartesian               Grid(latt_size,simd_layout,mpi_layout);
-  GridRedBlackCartesian     RBGrid(latt_size,simd_layout,mpi_layout);
+  GridRedBlackCartesian     RBGrid(&Grid);
 
   std::vector<int> seeds({1,2,3,4});
   GridParallelRNG          pRNG(&Grid);  pRNG.SeedFixedIntegers(seeds);
@@ -73,7 +73,10 @@ int main (int argc, char ** argv)
   }  
   
   RealD mass=0.1;
-  ImprovedStaggeredFermionR Ds(Umu,Umu,Grid,RBGrid,mass);
+  RealD c1=9.0/8.0;
+  RealD c2=-1.0/24.0;
+  RealD u0=1.0;
+  ImprovedStaggeredFermionR Ds(Umu,Umu,Grid,RBGrid,mass,c1,c2,u0);
 
   MdagMLinearOperator<ImprovedStaggeredFermionR,FermionField> HermOp(Ds);
   ConjugateGradient<FermionField> CG(1.0e-6,10000);

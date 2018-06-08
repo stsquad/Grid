@@ -39,23 +39,28 @@ Author: paboyle <paboyle@ph.ed.ac.uk>
 #include <cassert>
 
 #include <Grid/pugixml/pugixml.h>
+#include <Grid/GridCore.h>
 
 namespace Grid
 {
+  void xmlCheckParse(const pugi::xml_parse_result &result, const std::string name);
   
   class XmlWriter: public Writer<XmlWriter>
   {    
   public:
-    XmlWriter(const std::string &fileName,std::string toplev = std::string("grid") );
+    XmlWriter(const std::string &fileName, std::string toplev = std::string("grid") );
     virtual ~XmlWriter(void);
     void push(const std::string &s);
+    void pushXmlString(const std::string &s);
     void pop(void);
     template <typename U>
     void writeDefault(const std::string &s, const U &x);
     template <typename U>
     void writeDefault(const std::string &s, const std::vector<U> &x);
-    std::string XmlString(void);
+    std::string docString(void);
+    std::string string(void);
   private:
+    const std::string  indent_{"  "};
     pugi::xml_document doc_;
     pugi::xml_node     node_;
     std::string        fileName_;
@@ -64,8 +69,8 @@ namespace Grid
   class XmlReader: public Reader<XmlReader>
   {
   public:
-    XmlReader(const char *xmlstring,std::string toplev = std::string("grid") );
-    XmlReader(const std::string &fileName,std::string toplev = std::string("grid") );
+    XmlReader(const std::string &fileName, const bool isBuffer = false, 
+              std::string toplev = std::string("grid") );
     virtual ~XmlReader(void) = default;
     bool push(const std::string &s);
     void pop(void);
@@ -74,6 +79,8 @@ namespace Grid
     void readDefault(const std::string &s, U &output);
     template <typename U>
     void readDefault(const std::string &s, std::vector<U> &output);
+  private:
+    void checkParse(const pugi::xml_parse_result &result, const std::string name);
   private:
     pugi::xml_document doc_;
     pugi::xml_node     node_;
@@ -96,6 +103,14 @@ namespace Grid
   {
     std::ostringstream os;
     
+    if (getPrecision())
+    {
+      os.precision(getPrecision());
+    }
+    if (isScientific())
+    {
+      os << std::scientific;
+    }
     os << std::boolalpha << x;
     pugi::xml_node leaf = node_.append_child(s.c_str());
     leaf.append_child(pugi::node_pcdata).set_value(os.str().c_str());
@@ -119,7 +134,6 @@ namespace Grid
     std::string buf;
     
     readDefault(s, buf);
-    //    std::cout << s << "   " << buf << std::endl;
     fromString(output, buf);
   }
   
@@ -132,7 +146,13 @@ namespace Grid
     std::string    buf;
     unsigned int   i = 0;
     
-    push(s);
+    if (!push(s))
+    {
+      std::cout << GridLogWarning << "XML: cannot open node '" << s << "'";
+      std::cout << std::endl;
+
+      return; 
+    }
     while (node_.child("elem"))
     {
       output.resize(i + 1);

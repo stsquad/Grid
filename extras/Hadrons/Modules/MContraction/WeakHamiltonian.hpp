@@ -4,9 +4,10 @@ Grid physics library, www.github.com/paboyle/Grid
 
 Source file: extras/Hadrons/Modules/MContraction/WeakHamiltonian.hpp
 
-Copyright (C) 2017
+Copyright (C) 2015-2018
 
-Author: Andrew Lawson    <andrew.lawson1991@gmail.com>
+Author: Antonin Portelli <antonin.portelli@me.com>
+Author: Lanny91 <andrew.lawson@gmail.com>
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -76,6 +77,7 @@ public:
                                     std::string, q2,
                                     std::string, q3,
                                     std::string, q4,
+                                    unsigned int, tSnk,
                                     std::string, output);
 };
 
@@ -95,17 +97,19 @@ public:\
     /* constructor */ \
     T##modname(const std::string name);\
     /* destructor */ \
-    virtual ~T##modname(void) = default;\
+    virtual ~T##modname(void) {};\
     /* dependency relation */ \
     virtual std::vector<std::string> getInput(void);\
     virtual std::vector<std::string> getOutput(void);\
+public:\
+    std::vector<std::string> VA_label = {"V", "A"};\
+protected:\
     /* setup */ \
     virtual void setup(void);\
     /* execution */ \
     virtual void execute(void);\
-    std::vector<std::string> VA_label = {"V", "A"};\
 };\
-MODULE_REGISTER_NS(modname, T##modname, MContraction);
+MODULE_REGISTER(modname, T##modname, MContraction);
 
 END_MODULE_NAMESPACE
 

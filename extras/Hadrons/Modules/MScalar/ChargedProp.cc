@@ -1,3 +1,31 @@
+/*************************************************************************************
+
+Grid physics library, www.github.com/paboyle/Grid 
+
+Source file: extras/Hadrons/Modules/MScalar/ChargedProp.cc
+
+Copyright (C) 2015-2018
+
+Author: Antonin Portelli <antonin.portelli@me.com>
+Author: James Harrison <jch1g10@soton.ac.uk>
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+See the full license in the file "LICENSE" in the top level distribution directory
+*************************************************************************************/
+/*  END LEGAL */
 #include <Grid/Hadrons/Modules/MScalar/ChargedProp.hpp>
 #include <Grid/Hadrons/Modules/MScalar/Scalar.hpp>
 
@@ -23,7 +51,7 @@ std::vector<std::string> TChargedProp::getInput(void)
 
 std::vector<std::string> TChargedProp::getOutput(void)
 {
-    std::vector<std::string> out = {getName(), getName()+"_Q",
+    std::vector<std::string> out = {getName(), getName()+"_0", getName()+"_Q",
                                     getName()+"_Sun", getName()+"_Tad"};
     
     return out;
@@ -38,251 +66,200 @@ void TChargedProp::setup(void)
     {
         phaseName_.push_back("_shiftphase_" + std::to_string(mu));
     }
-    GFSrcName_ = "_" + getName() + "_DinvSrc";
-    prop0Name_ = getName() + "_0";
+    GFSrcName_ = getName() + "_DinvSrc";
+	prop0Name_ = getName() + "_0";
     propQName_ = getName() + "_Q";
     propSunName_ = getName() + "_Sun";
     propTadName_ = getName() + "_Tad";
-    if (!env().hasRegisteredObject(freeMomPropName_))
+    fftName_   = getName() + "_fft";
+
+    freeMomPropDone_ = env().hasCreatedObject(freeMomPropName_);
+    GFSrcDone_       = env().hasCreatedObject(GFSrcName_);
+    phasesDone_      = env().hasCreatedObject(phaseName_[0]);
+	prop0Done_		 = env().hasCreatedObject(prop0Name_);
+    envCacheLat(ScalarField, freeMomPropName_);
+    for (unsigned int mu = 0; mu < env().getNd(); ++mu)
     {
-        env().registerLattice<ScalarField>(freeMomPropName_);
+        envCacheLat(ScalarField, phaseName_[mu]);
     }
-    if (!env().hasRegisteredObject(phaseName_[0]))
-    {
-        for (unsigned int mu = 0; mu < env().getNd(); ++mu)
-        {
-            env().registerLattice<ScalarField>(phaseName_[mu]);
-        }
-    }
-    if (!env().hasRegisteredObject(GFSrcName_))
-    {
-        env().registerLattice<ScalarField>(GFSrcName_);
-    }
-    if (!env().hasRegisteredObject(prop0Name_))
-    {
-        env().registerLattice<ScalarField>(prop0Name_);
-    }
-    env().registerLattice<ScalarField>(getName());
-    env().registerLattice<ScalarField>(propQName_);
-    env().registerLattice<ScalarField>(propSunName_);
-    env().registerLattice<ScalarField>(propTadName_);
+    envCacheLat(ScalarField, GFSrcName_);
+	envCacheLat(ScalarField, prop0Name_);
+    envCreateLat(ScalarField, getName());
+    envCreateLat(ScalarField, propQName_);
+    envCreateLat(ScalarField, propSunName_);
+    envCreateLat(ScalarField, propTadName_);
+    envTmpLat(ScalarField, "buf");
+    envTmpLat(ScalarField, "result");
+    envTmpLat(ScalarField, "Amu");
+    envCache(FFT, fftName_, 1, env().getGrid());
 }
 
 // execution ///////////////////////////////////////////////////////////////////
 void TChargedProp::execute(void)
 {
     // CACHING ANALYTIC EXPRESSIONS
-    ScalarField &source = *env().getObject<ScalarField>(par().source);
-    Complex     ci(0.0,1.0);
-    FFT         fft(env().getGrid());
-    
-    // cache momentum-space free scalar propagator
-    if (!env().hasCreatedObject(freeMomPropName_))
-    {
-        LOG(Message) << "Caching momentum space free scalar propagator"
-                     << " (mass= " << par().mass << ")..." << std::endl;
-        freeMomProp_ = env().createLattice<ScalarField>(freeMomPropName_);
-        SIMPL::MomentumSpacePropagator(*freeMomProp_, par().mass);
-    }
-    else
-    {
-        freeMomProp_ = env().getObject<ScalarField>(freeMomPropName_);
-    }
-    // cache G*F*src
-    if (!env().hasCreatedObject(GFSrcName_))
-        
-    {
-        GFSrc_ = env().createLattice<ScalarField>(GFSrcName_);
-        fft.FFT_all_dim(*GFSrc_, source, FFT::forward);
-        *GFSrc_ = (*freeMomProp_)*(*GFSrc_);
-    }
-    else
-    {
-        GFSrc_ = env().getObject<ScalarField>(GFSrcName_);
-    }
-    // cache position-space free scalar propagator
-    if (!env().hasCreatedObject(prop0Name_))
-    {
-        prop0_ = env().createLattice<ScalarField>(prop0Name_);
-        *prop0_ = *GFSrc_;
-        fft.FFT_all_dim(*prop0_, *prop0_, FFT::backward);
-    }
-    else
-    {
-        prop0_ = env().getObject<ScalarField>(prop0Name_);
-    }
-    // cache phases
-    if (!env().hasCreatedObject(phaseName_[0]))
-    {
-        std::vector<int> &l = env().getGrid()->_fdimensions;
-        
-        LOG(Message) << "Caching shift phases..." << std::endl;
-        for (unsigned int mu = 0; mu < env().getNd(); ++mu)
-        {
-            Real    twoPiL = M_PI*2./l[mu];
-            
-            phase_.push_back(env().createLattice<ScalarField>(phaseName_[mu]));
-            LatticeCoordinate(*(phase_[mu]), mu);
-            *(phase_[mu]) = exp(ci*twoPiL*(*(phase_[mu])));
-        }
-    }
-    else
-    {
-        for (unsigned int mu = 0; mu < env().getNd(); ++mu)
-        {
-            phase_.push_back(env().getObject<ScalarField>(phaseName_[mu]));
-        }
-    }
+    makeCaches();
 
     // PROPAGATOR CALCULATION
     LOG(Message) << "Computing charged scalar propagator"
                  << " (mass= " << par().mass
                  << ", charge= " << par().charge << ")..." << std::endl;
     
-    ScalarField &prop   = *env().createLattice<ScalarField>(getName());
-    ScalarField &propQ   = *env().createLattice<ScalarField>(propQName_);
-    ScalarField &propSun   = *env().createLattice<ScalarField>(propSunName_);
-    ScalarField &propTad   = *env().createLattice<ScalarField>(propTadName_);
-    ScalarField buf(env().getGrid());
-    ScalarField &GFSrc = *GFSrc_, &G = *freeMomProp_;
-    double      q = par().charge;
-    
+    auto   &prop    = envGet(ScalarField, getName());
+	auto   &prop0   = envGet(ScalarField, prop0Name_);
+	auto   &propQ   = envGet(ScalarField, propQName_);
+	auto   &propSun = envGet(ScalarField, propSunName_);
+	auto   &propTad = envGet(ScalarField, propTadName_);
+    auto   &GFSrc   = envGet(ScalarField, GFSrcName_);
+    auto   &G       = envGet(ScalarField, freeMomPropName_);
+    auto   &fft     = envGet(FFT, fftName_);
+    double q        = par().charge;
+    envGetTmp(ScalarField, buf);
+
     // -G*momD1*G*F*Src (momD1 = F*D1*Finv)
-    buf = GFSrc;
-    momD1(buf, fft);
-    buf = -G*buf;
-    fft.FFT_all_dim(propQ, buf, FFT::backward);
+    propQ = GFSrc;
+    momD1(propQ, fft);
+    propQ = -G*propQ;
+    propSun = -propQ;
+    fft.FFT_dim(propQ, propQ, env().getNd()-1, FFT::backward);
 
     // G*momD1*G*momD1*G*F*Src (here buf = G*momD1*G*F*Src)
-    buf = -buf;
-    momD1(buf, fft);
-    propSun = G*buf;
-    fft.FFT_all_dim(propSun, propSun, FFT::backward);
+    momD1(propSun, fft);
+    propSun = G*propSun;
+    fft.FFT_dim(propSun, propSun, env().getNd()-1, FFT::backward);
 
     // -G*momD2*G*F*Src (momD2 = F*D2*Finv)
-    buf = GFSrc;
-    momD2(buf, fft);
-    buf = -G*buf;
-    fft.FFT_all_dim(propTad, buf, FFT::backward);
-
-    // full charged scalar propagator
-    prop = (*prop0_) + q*propQ + q*q*propSun + q*q*propTad;
+    propTad = GFSrc;
+    momD2(propTad, fft);
+    propTad = -G*propTad;
+    fft.FFT_dim(propTad, propTad, env().getNd()-1, FFT::backward);
     
+    // full charged scalar propagator
+    fft.FFT_dim(buf, GFSrc, env().getNd()-1, FFT::backward);
+    prop = buf + q*propQ + q*q*propSun + q*q*propTad;
+
     // OUTPUT IF NECESSARY
     if (!par().output.empty())
     {
+        Result result;
+        TComplex            site;
+        std::vector<int>    siteCoor;
+
+        LOG(Message) << "Saving momentum-projected propagator to '"
+                     << RESULT_FILE_NAME(par().output) << "'..."
+                     << std::endl;
+        result.projection.resize(par().outputMom.size());
+        result.lattice_size = env().getGrid()->_fdimensions;
+        result.mass = par().mass;
+        result.charge = q;
+        siteCoor.resize(env().getNd());
         for (unsigned int i_p = 0; i_p < par().outputMom.size(); ++i_p)
         {
-            std::vector<int> mom = strToVec<int>(par().outputMom[i_p]);
-            std::string           filename = par().output + "_" + std::to_string(mom[0])
-                                                          + std::to_string(mom[1])
-                                                          + std::to_string(mom[2])
-                                                          + "." +
-                                         std::to_string(env().getTrajectory());
+            result.projection[i_p].momentum = strToVec<int>(par().outputMom[i_p]);
 
-            LOG(Message) << "Saving (" << par().outputMom[i_p] << ") momentum projection to '"
-                     << filename << "'..." << std::endl;
+            LOG(Message) << "Calculating (" << par().outputMom[i_p]
+                         << ") momentum projection" << std::endl;
 
-            CorrWriter            writer(filename);
-            std::vector<TComplex> vecBuf;
-            std::vector<Complex>  result;
+            result.projection[i_p].corr_0.resize(env().getGrid()->_fdimensions[env().getNd()-1]);
+            result.projection[i_p].corr.resize(env().getGrid()->_fdimensions[env().getNd()-1]);
+            result.projection[i_p].corr_Q.resize(env().getGrid()->_fdimensions[env().getNd()-1]);
+            result.projection[i_p].corr_Sun.resize(env().getGrid()->_fdimensions[env().getNd()-1]);
+            result.projection[i_p].corr_Tad.resize(env().getGrid()->_fdimensions[env().getNd()-1]);
 
-            write(writer, "charge", q);
-            write(writer, "mass", par().mass);
-
-            // Write full propagator
-            buf = prop;
             for (unsigned int j = 0; j < env().getNd()-1; ++j)
             {
-                for (unsigned int momcount = 0; momcount < mom[j]; ++momcount)
-                {
-                    buf = buf*adj(*phase_[j]);
-                }
+                siteCoor[j] = result.projection[i_p].momentum[j];
             }
-            sliceSum(buf, vecBuf, Tp);
-            result.resize(vecBuf.size());
-            for (unsigned int t = 0; t < vecBuf.size(); ++t)
-            {
-                result[t] = TensorRemove(vecBuf[t]);
-            }
-            write(writer, "prop", result);
 
-            // Write free propagator
-            buf = *prop0_;
-            for (unsigned int j = 0; j < env().getNd()-1; ++j)
+            for (unsigned int t = 0; t < result.projection[i_p].corr.size(); ++t)
             {
-                for (unsigned int momcount = 0; momcount < mom[j]; ++momcount)
-                {
-                    buf = buf*adj(*phase_[j]);
-                }
+                siteCoor[env().getNd()-1] = t;
+                peekSite(site, prop, siteCoor);
+                result.projection[i_p].corr[t]=TensorRemove(site);
+                peekSite(site, buf, siteCoor);
+                result.projection[i_p].corr_0[t]=TensorRemove(site);
+                peekSite(site, propQ, siteCoor);
+                result.projection[i_p].corr_Q[t]=TensorRemove(site);
+                peekSite(site, propSun, siteCoor);
+                result.projection[i_p].corr_Sun[t]=TensorRemove(site);
+                peekSite(site, propTad, siteCoor);
+                result.projection[i_p].corr_Tad[t]=TensorRemove(site);
             }
-            sliceSum(buf, vecBuf, Tp);
-            for (unsigned int t = 0; t < vecBuf.size(); ++t)
-            {
-                result[t] = TensorRemove(vecBuf[t]);
-            }
-            write(writer, "prop_0", result);
+        }
+        saveResult(par().output, "prop", result);
+    }
 
-            // Write propagator O(q) term
-            buf = propQ;
-            for (unsigned int j = 0; j < env().getNd()-1; ++j)
-            {
-                for (unsigned int momcount = 0; momcount < mom[j]; ++momcount)
-                {
-                    buf = buf*adj(*phase_[j]);
-                }
-            }
-            sliceSum(buf, vecBuf, Tp);
-            for (unsigned int t = 0; t < vecBuf.size(); ++t)
-            {
-                result[t] = TensorRemove(vecBuf[t]);
-            }
-            write(writer, "prop_Q", result);
+    std::vector<int> mask(env().getNd(),1);
+    mask[env().getNd()-1] = 0;
+    fft.FFT_dim_mask(prop, prop, mask, FFT::backward);
+    fft.FFT_dim_mask(propQ, propQ, mask, FFT::backward);
+    fft.FFT_dim_mask(propSun, propSun, mask, FFT::backward);
+    fft.FFT_dim_mask(propTad, propTad, mask, FFT::backward);
+}
 
-            // Write propagator sunset term
-            buf = propSun;
-            for (unsigned int j = 0; j < env().getNd()-1; ++j)
-            {
-                for (unsigned int momcount = 0; momcount < mom[j]; ++momcount)
-                {
-                    buf = buf*adj(*phase_[j]);
-                }
-            }
-            sliceSum(buf, vecBuf, Tp);
-            for (unsigned int t = 0; t < vecBuf.size(); ++t)
-            {
-                result[t] = TensorRemove(vecBuf[t]);
-            }
-            write(writer, "prop_Sun", result);
+void TChargedProp::makeCaches(void)
+{
+    auto &freeMomProp = envGet(ScalarField, freeMomPropName_);
+    auto &GFSrc       = envGet(ScalarField, GFSrcName_);
+	auto &prop0		  = envGet(ScalarField, prop0Name_);
+    auto &fft         = envGet(FFT, fftName_);
 
-            // Write propagator tadpole term
-            buf = propTad;
-            for (unsigned int j = 0; j < env().getNd()-1; ++j)
-            {
-                for (unsigned int momcount = 0; momcount < mom[j]; ++momcount)
-                {
-                    buf = buf*adj(*phase_[j]);
-                }
-            }
-            sliceSum(buf, vecBuf, Tp);
-            for (unsigned int t = 0; t < vecBuf.size(); ++t)
-            {
-                result[t] = TensorRemove(vecBuf[t]);
-            }
-            write(writer, "prop_Tad", result);
+    if (!freeMomPropDone_)
+    {
+        LOG(Message) << "Caching momentum-space free scalar propagator"
+                     << " (mass= " << par().mass << ")..." << std::endl;
+        SIMPL::MomentumSpacePropagator(freeMomProp, par().mass);
+    }
+    if (!GFSrcDone_)
+    {   
+        auto &source = envGet(ScalarField, par().source);
+        
+        LOG(Message) << "Caching G*F*src..." << std::endl;
+        fft.FFT_all_dim(GFSrc, source, FFT::forward);
+        GFSrc = freeMomProp*GFSrc;
+    }
+	if (!prop0Done_)
+	{
+		LOG(Message) << "Caching position-space free scalar propagator..."
+                     << std::endl;
+		fft.FFT_all_dim(prop0, GFSrc, FFT::backward);
+	}
+    if (!phasesDone_)
+    {
+        std::vector<int> &l = env().getGrid()->_fdimensions;
+        Complex          ci(0.0,1.0);
+        
+        LOG(Message) << "Caching shift phases..." << std::endl;
+        for (unsigned int mu = 0; mu < env().getNd(); ++mu)
+        {
+            Real twoPiL = M_PI*2./l[mu];
+            auto &phmu  = envGet(ScalarField, phaseName_[mu]);
+            
+            LatticeCoordinate(phmu, mu);
+            phmu = exp(ci*twoPiL*phmu);
+            phase_.push_back(&phmu);
+        }
+    }
+    else
+    {
+        phase_.clear();
+        for (unsigned int mu = 0; mu < env().getNd(); ++mu)
+        {
+            phase_.push_back(env().getObject<ScalarField>(phaseName_[mu]));
         }
     }
 }
 
 void TChargedProp::momD1(ScalarField &s, FFT &fft)
 {
-    EmField     &A = *env().getObject<EmField>(par().emField);
-    ScalarField buf(env().getGrid()), result(env().getGrid()),
-                Amu(env().getGrid());
+    auto        &A = envGet(EmField, par().emField);
     Complex     ci(0.0,1.0);
 
-    result = zero;
+    envGetTmp(ScalarField, buf);
+    envGetTmp(ScalarField, result);
+    envGetTmp(ScalarField, Amu);
 
+    result = zero;
     for (unsigned int mu = 0; mu < env().getNd(); ++mu)
     {
         Amu = peekLorentz(A, mu);
@@ -306,12 +283,13 @@ void TChargedProp::momD1(ScalarField &s, FFT &fft)
 
 void TChargedProp::momD2(ScalarField &s, FFT &fft)
 {
-    EmField     &A = *env().getObject<EmField>(par().emField);
-    ScalarField buf(env().getGrid()), result(env().getGrid()),
-                Amu(env().getGrid());
+    auto &A = envGet(EmField, par().emField);
+
+    envGetTmp(ScalarField, buf);
+    envGetTmp(ScalarField, result);
+    envGetTmp(ScalarField, Amu);
 
     result = zero;
-    
     for (unsigned int mu = 0; mu < env().getNd(); ++mu)
     {
         Amu = peekLorentz(A, mu);

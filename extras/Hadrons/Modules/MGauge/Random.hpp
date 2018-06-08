@@ -4,8 +4,7 @@ Grid physics library, www.github.com/paboyle/Grid
 
 Source file: extras/Hadrons/Modules/MGauge/Random.hpp
 
-Copyright (C) 2015
-Copyright (C) 2016
+Copyright (C) 2015-2018
 
 Author: Antonin Portelli <antonin.portelli@me.com>
 
@@ -47,17 +46,18 @@ public:
     // constructor
     TRandom(const std::string name);
     // destructor
-    virtual ~TRandom(void) = default;
+    virtual ~TRandom(void) {};
     // dependency relation
     virtual std::vector<std::string> getInput(void);
     virtual std::vector<std::string> getOutput(void);
+protected:
     // setup
     virtual void setup(void);
     // execution
     virtual void execute(void);
 };
 
-MODULE_REGISTER_NS(Random, TRandom, MGauge);
+MODULE_REGISTER(Random, TRandom, MGauge);
 
 END_MODULE_NAMESPACE
 

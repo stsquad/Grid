@@ -47,7 +47,8 @@ int WilsonFermionStatic::HandOptDslash;
 template <class Impl>
 WilsonFermion<Impl>::WilsonFermion(GaugeField &_Umu, GridCartesian &Fgrid,
                                    GridRedBlackCartesian &Hgrid, RealD _mass,
-                                   const ImplParams &p)
+                                   const ImplParams &p,
+                                   const WilsonAnisotropyCoefficients &anis)
     : Kernels(p),
       _grid(&Fgrid),
       _cbgrid(&Hgrid),
@@ -60,16 +61,41 @@ WilsonFermion<Impl>::WilsonFermion(GaugeField &_Umu, GridCartesian &Fgrid,
       Umu(&Fgrid),
       UmuEven(&Hgrid),
       UmuOdd(&Hgrid),
-      _tmp(&Hgrid)
+      _tmp(&Hgrid),
+      anisotropyCoeff(anis)
 {
   // Allocate the required comms buffer
   ImportGauge(_Umu);
+  if  (anisotropyCoeff.isAnisotropic){
+    diag_mass = mass + 1.0 + (Nd-1)*(anisotropyCoeff.nu / anisotropyCoeff.xi_0);
+  } else {
+    diag_mass = 4.0 + mass;
+  }
+
+
 }
 
 template <class Impl>
 void WilsonFermion<Impl>::ImportGauge(const GaugeField &_Umu) {
   GaugeField HUmu(_Umu._grid);
-  HUmu = _Umu * (-0.5);
+
+  //Here multiply the anisotropy coefficients
+  if (anisotropyCoeff.isAnisotropic)
+  {
+
+    for (int mu = 0; mu < Nd; mu++)
+    {
+      GaugeLinkField U_dir = (-0.5)*PeekIndex<LorentzIndex>(_Umu, mu);
+      if (mu != anisotropyCoeff.t_direction)
+        U_dir *= (anisotropyCoeff.nu / anisotropyCoeff.xi_0);
+
+      PokeIndex<LorentzIndex>(HUmu, U_dir, mu);
+    }
+  }
+  else
+  {
+    HUmu = _Umu * (-0.5);
+  }
   Impl::DoubleStore(GaugeGrid(), Umu, HUmu);
   pickCheckerboard(Even, UmuEven, Umu);
   pickCheckerboard(Odd, UmuOdd, Umu);
@@ -83,14 +109,14 @@ template <class Impl>
 RealD WilsonFermion<Impl>::M(const FermionField &in, FermionField &out) {
   out.checkerboard = in.checkerboard;
   Dhop(in, out, DaggerNo);
-  return axpy_norm(out, 4 + mass, in, out);
+  return axpy_norm(out, diag_mass, in, out);
 }
 
 template <class Impl>
 RealD WilsonFermion<Impl>::Mdag(const FermionField &in, FermionField &out) {
   out.checkerboard = in.checkerboard;
   Dhop(in, out, DaggerYes);
-  return axpy_norm(out, 4 + mass, in, out);
+  return axpy_norm(out, diag_mass, in, out);
 }
 
 template <class Impl>
@@ -114,7 +140,7 @@ void WilsonFermion<Impl>::MeooeDag(const FermionField &in, FermionField &out) {
 template <class Impl>
 void WilsonFermion<Impl>::Mooee(const FermionField &in, FermionField &out) {
   out.checkerboard = in.checkerboard;
-  typename FermionField::scalar_type scal(4.0 + mass);
+  typename FermionField::scalar_type scal(diag_mass);
   out = scal * in;
 }
 
@@ -127,7 +153,7 @@ void WilsonFermion<Impl>::MooeeDag(const FermionField &in, FermionField &out) {
 template<class Impl>
 void WilsonFermion<Impl>::MooeeInv(const FermionField &in, FermionField &out) {
   out.checkerboard = in.checkerboard;
-  out = (1.0/(4.0+mass))*in;
+  out = (1.0/(diag_mass))*in;
 }
   
 template<class Impl>
@@ -136,7 +162,7 @@ void WilsonFermion<Impl>::MooeeInvDag(const FermionField &in, FermionField &out)
   MooeeInv(in,out);
 }
 template<class Impl>
-void WilsonFermion<Impl>::MomentumSpacePropagator(FermionField &out, const FermionField &in,RealD _m) 
+void WilsonFermion<Impl>::MomentumSpacePropagator(FermionField &out, const FermionField &in,RealD _m,std::vector<double> twist)
 {  
   typedef typename FermionField::vector_type vector_type;
   typedef typename FermionField::scalar_type ScalComplex;
@@ -169,6 +195,7 @@ void WilsonFermion<Impl>::MomentumSpacePropagator(FermionField &out, const Fermi
     RealD TwoPiL =  M_PI * 2.0/ latt_size[mu];
     
     kmu = TwoPiL * kmu;
+    kmu = kmu + TwoPiL * one * twist[mu];//momentum for twisted boundary conditions
     
     wilson = wilson + 2.0*sin(kmu*0.5)*sin(kmu*0.5); // Wilson term
     
@@ -204,7 +231,7 @@ void WilsonFermion<Impl>::DerivInternal(StencilImpl &st, DoubledGaugeField &U,
 
   FermionField Btilde(B._grid);
   FermionField Atilde(B._grid);
-  Atilde = A;
+  Atilde = A;//redundant
 
   st.HaloExchange(B, compressor);
 
@@ -322,15 +349,98 @@ void WilsonFermion<Impl>::DhopDirDisp(const FermionField &in, FermionField &out,
   parallel_for (int sss = 0; sss < in._grid->oSites(); sss++) {
     Kernels::DhopDir(Stencil, Umu, Stencil.CommBuf(), sss, sss, in, out, dirdisp, gamma);
   }
-};
-
+} 
+/*Change starts*/
 template <class Impl>
 void WilsonFermion<Impl>::DhopInternal(StencilImpl &st, LebesgueOrder &lo,
                                        DoubledGaugeField &U,
                                        const FermionField &in,
                                        FermionField &out, int dag) {
-  assert((dag == DaggerNo) || (dag == DaggerYes));
+#ifdef GRID_OMP
+  if ( WilsonKernelsStatic::Comms == WilsonKernelsStatic::CommsAndCompute )
+    DhopInternalOverlappedComms(st,lo,U,in,out,dag);
+  else
+#endif 
+    DhopInternalSerial(st,lo,U,in,out,dag);
 
+}
+
+template <class Impl>
+void WilsonFermion<Impl>::DhopInternalOverlappedComms(StencilImpl &st, LebesgueOrder &lo,
+                                       DoubledGaugeField &U,
+                                       const FermionField &in,
+                                       FermionField &out, int dag) {
+  assert((dag == DaggerNo) || (dag == DaggerYes));
+#ifdef GRID_OMP
+  Compressor compressor;
+  int len =  U._grid->oSites();
+  const int LLs =  1;
+
+  st.Prepare();
+  st.HaloGather(in,compressor);
+  st.CommsMergeSHM(compressor);
+#pragma omp parallel
+  {
+    int tid = omp_get_thread_num();
+    int nthreads = omp_get_num_threads();
+    int ncomms = CartesianCommunicator::nCommThreads;
+    if (ncomms == -1) ncomms = 1;
+    assert(nthreads > ncomms);
+    if (tid >= ncomms) {
+      nthreads -= ncomms;
+      int ttid  = tid - ncomms;
+      int n     = len;
+      int chunk = n / nthreads;
+      int rem   = n % nthreads;
+      int myblock, myn;
+      if (ttid < rem) {
+        myblock = ttid * chunk + ttid;
+        myn = chunk+1;
+      } else {
+        myblock = ttid*chunk + rem;
+        myn = chunk;
+      }
+      // do the compute
+     if (dag == DaggerYes) {
+
+        for (int sss = myblock; sss < myblock+myn; ++sss) {
+         Kernels::DhopSiteDag(st, lo, U, st.CommBuf(), sss, sss, 1, 1, in, out);
+       }
+     } else {
+        for (int sss = myblock; sss < myblock+myn; ++sss) {
+         Kernels::DhopSite(st, lo, U, st.CommBuf(), sss, sss, 1, 1, in, out);
+       }
+    } //else
+
+    } else {
+      st.CommunicateThreaded();
+    }
+
+  Compressor compressor(dag);
+
+  if (dag == DaggerYes) {
+    parallel_for (int sss = 0; sss < in._grid->oSites(); sss++) {
+      Kernels::DhopSiteDag(st, lo, U, st.CommBuf(), sss, sss, 1, 1, in, out);
+    }
+  } else {
+    parallel_for (int sss = 0; sss < in._grid->oSites(); sss++) {
+      Kernels::DhopSite(st, lo, U, st.CommBuf(), sss, sss, 1, 1, in, out);
+    }
+  }
+
+  }  //pragma
+#else
+  assert(0);
+#endif
+};
+
+
+template <class Impl>
+void WilsonFermion<Impl>::DhopInternalSerial(StencilImpl &st, LebesgueOrder &lo,
+                                       DoubledGaugeField &U,
+                                       const FermionField &in,
+                                       FermionField &out, int dag) {
+  assert((dag == DaggerNo) || (dag == DaggerYes));
   Compressor compressor(dag);
   st.HaloExchange(in, compressor);
 
@@ -344,6 +454,105 @@ void WilsonFermion<Impl>::DhopInternal(StencilImpl &st, LebesgueOrder &lo,
     }
   }
 };
+/*Change ends */
+
+/*******************************************************************************
+ * Conserved current utilities for Wilson fermions, for contracting propagators
+ * to make a conserved current sink or inserting the conserved current 
+ * sequentially.
+ ******************************************************************************/
+template <class Impl>
+void WilsonFermion<Impl>::ContractConservedCurrent(PropagatorField &q_in_1,
+                                                   PropagatorField &q_in_2,
+                                                   PropagatorField &q_out,
+                                                   Current curr_type,
+                                                   unsigned int mu)
+{
+    Gamma g5(Gamma::Algebra::Gamma5);
+    conformable(_grid, q_in_1._grid);
+    conformable(_grid, q_in_2._grid);
+    conformable(_grid, q_out._grid);
+    PropagatorField tmp1(_grid), tmp2(_grid);
+    q_out = zero;
+
+    // Forward, need q1(x + mu), q2(x). Backward, need q1(x), q2(x + mu).
+    // Inefficient comms method but not performance critical.
+    tmp1 = Cshift(q_in_1, mu, 1);
+    tmp2 = Cshift(q_in_2, mu, 1);
+    parallel_for (unsigned int sU = 0; sU < Umu._grid->oSites(); ++sU)
+    {
+        Kernels::ContractConservedCurrentSiteFwd(tmp1._odata[sU],
+                                                 q_in_2._odata[sU],
+                                                 q_out._odata[sU],
+                                                 Umu, sU, mu);
+        Kernels::ContractConservedCurrentSiteBwd(q_in_1._odata[sU],
+                                                 tmp2._odata[sU],
+                                                 q_out._odata[sU],
+                                                 Umu, sU, mu);
+    }
+}
+
+
+template <class Impl>
+void WilsonFermion<Impl>::SeqConservedCurrent(PropagatorField &q_in, 
+                                              PropagatorField &q_out,
+                                              Current curr_type,
+                                              unsigned int mu,
+                                              unsigned int tmin, 
+                                              unsigned int tmax,
+					      ComplexField &lattice_cmplx)
+{
+    conformable(_grid, q_in._grid);
+    conformable(_grid, q_out._grid);
+    PropagatorField tmpFwd(_grid), tmpBwd(_grid), tmp(_grid);
+    unsigned int tshift = (mu == Tp) ? 1 : 0;
+    unsigned int LLt    = GridDefaultLatt()[Tp];
+
+    q_out = zero;
+    LatticeInteger coords(_grid);
+    LatticeCoordinate(coords, Tp);
+
+    // Need q(x + mu) and q(x - mu).
+    tmp = Cshift(q_in, mu, 1);
+    tmpFwd = tmp*lattice_cmplx;
+    tmp = lattice_cmplx*q_in;
+    tmpBwd = Cshift(tmp, mu, -1);
+
+    parallel_for (unsigned int sU = 0; sU < Umu._grid->oSites(); ++sU)
+    {
+        // Compute the sequential conserved current insertion only if our simd
+        // object contains a timeslice we need.
+        vInteger t_mask   = ((coords._odata[sU] >= tmin) &&
+                             (coords._odata[sU] <= tmax));
+        Integer timeSlices = Reduce(t_mask);
+
+        if (timeSlices > 0)
+        {
+            Kernels::SeqConservedCurrentSiteFwd(tmpFwd._odata[sU], 
+                                                q_out._odata[sU], 
+                                                Umu, sU, mu, t_mask);
+        }
+
+        // Repeat for backward direction.
+        t_mask     = ((coords._odata[sU] >= (tmin + tshift)) && 
+                      (coords._odata[sU] <= (tmax + tshift)));
+
+	//if tmax = LLt-1 (last timeslice) include timeslice 0 if the time is shifted (mu=3)	
+	unsigned int t0 = 0;
+	if((tmax==LLt-1) && (tshift==1)) t_mask = (t_mask || (coords._odata[sU] == t0 ));
+
+        timeSlices = Reduce(t_mask);
+
+        if (timeSlices > 0)
+        {
+            Kernels::SeqConservedCurrentSiteBwd(tmpBwd._odata[sU], 
+                                                q_out._odata[sU], 
+                                                Umu, sU, mu, t_mask);
+        }
+    }
+
+
+}
 
 FermOpTemplateInstantiate(WilsonFermion);
 AdjointFermOpTemplateInstantiate(WilsonFermion);
