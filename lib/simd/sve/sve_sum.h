@@ -25,8 +25,7 @@
       svbool_t pg1 = svptrue_b64();
       svfloat64_t a_v = svld1(pg1, a.v);
       svfloat64_t b_v = svld1(pg1, b.v);
-      svfloat64_t r_v = svadd_z(pg1, a_v, b_v);
-      //svfloat64_t r_v = svadd_x(pg1, a_v, b_v);
+      svfloat64_t r_v = svadd_x(pg1, a_v, b_v);
       svst1(pg1, out.v, r_v);
 
       return out;
@@ -37,8 +36,7 @@
       svbool_t pg1 = svptrue_b32();
       svfloat32_t a_v = svld1(pg1, a.v);
       svfloat32_t b_v = svld1(pg1, b.v);
-      svfloat32_t r_v = svadd_z(pg1, a_v, b_v);
-      //svfloat32_t r_v = svadd_x(pg1, a_v, b_v);
+      svfloat32_t r_v = svadd_x(pg1, a_v, b_v);
       svst1(pg1, out.v, r_v);
 
       return out;
@@ -49,8 +47,7 @@
       svbool_t pg1 = svptrue_b32();
       svuint32_t a_v = svld1(pg1, a.v);
       svuint32_t b_v = svld1(pg1, b.v);
-      svuint32_t r_v = svadd_z(pg1, a_v, b_v);
-      //svuint32_t r_v = svadd_x(pg1, a_v, b_v);
+      svuint32_t r_v = svadd_x(pg1, a_v, b_v);
       svst1(pg1, out.v, r_v);
 
       return out;

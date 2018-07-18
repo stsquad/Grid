@@ -34,7 +34,7 @@ Author: Antonin Portelli <antonin.portelli@me.com>
 
 #include "Grid_generic_types.h"
 
-  #if defined(GENSVE)
+#if defined(GENSVE)
 #ifdef __ARM_FEATURE_SVE
 #include <arm_sve.h>
 #else
@@ -108,7 +108,7 @@ namespace Optimization {
 
   #if defined(SVE_GROUP_ARITH)
   #pragma message("enabling SVE_GROUP_ARITH")
-//  #define SVE_SUM
+  #define SVE_SUM
   #define SVE_SUB
   #define SVE_MULT
   #define SVE_MULTREALPART
@@ -118,10 +118,11 @@ namespace Optimization {
   #define SVE_CONJ
   #define SVE_TIMESMINUSI
   #define SVE_TIMESI
-  #define SVE_REDUCE
+//  #define SVE_REDUCE
+  #define SVE_REDUCE_SLS
   #elif defined(SVE_GROUP_ARITH_SLS)
   #pragma message("enabling SVE_GROUP_ARITH_SLS")
-//  #define SVE_SUM
+  #define SVE_SUM
   #define SVE_SUB
   #define SVE_MULT
   #define SVE_MULTREALPART_SLS
@@ -131,15 +132,16 @@ namespace Optimization {
   #define SVE_CONJ_SLS
   #define SVE_TIMESMINUSI_SLS
   #define SVE_TIMESI_SLS
-  #define SVE_REDUCE
+  #define SVE_REDUCE_SLS
   #elif defined(SVE_GROUP_ARITH_REF)
   #pragma message("enabling SVE_GROUP_ARITH_REF")
-//  #define SVE_SUM_REF
+  #define SVE_SUM_REF
   #define SVE_SUB_REF
   #define SVE_MULT_REF
   #define SVE_MULTREALPART_REF
   #define SVE_MADDREALPART_REF
   #define SVE_MULTCOMPLEX_REF
+  #define SVE_MULTCOMPLEX
   #define SVE_DIV_REF
   #define SVE_CONJ_REF
   #define SVE_TIMESMINUSI_REF
@@ -148,8 +150,8 @@ namespace Optimization {
   #endif
 
   #if defined(SVE_GROUP_PREC)
-  //#pragma message("enabling SVE_GROUP_PREC")
-  //#define SVE_PREC
+  #pragma message("enabling SVE_GROUP_PREC")
+  #define SVE_PREC
   #endif
 
   #if defined(SVE_GROUP_PERM)
@@ -160,10 +162,9 @@ namespace Optimization {
   #endif
 
   #if defined(SVE_GROUP_PREFETCH)
-//  #pragma message("enabling SVE_GROUP_PREFETCH")
-//  #define SVE_PREFETCH
+  #pragma message("enabling SVE_GROUP_PREFETCH")
+  #define SVE_PREFETCH
   #endif
-
 
   #endif // GENSVE
 
@@ -709,6 +710,8 @@ namespace Optimization {
 
   #if defined(GENSVE) && defined(SVE_REDUCE)
   #include "sve/sve_reduce.h"
+  #elif defined(GENSVE) && defined(SVE_REDUCE_SLS)
+  #include "sve/sve_reduce_sls.h"
   #else
 
   #define acc(v, a, off, step, n)\

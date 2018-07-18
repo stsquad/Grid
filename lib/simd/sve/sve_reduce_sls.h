@@ -1,7 +1,7 @@
-#ifndef SVE_REDUCE_H
-#define SVE_REDUCE_H
+#ifndef SVE_REDUCE_SLS_H
+#define SVE_REDUCE_SLS_H
 
-#pragma message("include sve_reduce.h")
+#pragma message("include sve_reduce_sls.h")
 
   // tree-based reduction
   #define svred(pg, v)\
@@ -26,6 +26,7 @@
   template <>
   inline Grid::ComplexF Reduce<Grid::ComplexF, vecf>::operator()(const vecf &in){
 
+/*
     svbool_t pg1 = acle<float>::pg1();
     svbool_t pg_even = acle<float>::pg_even();
     svbool_t pg_odd  = acle<float>::pg_odd();
@@ -34,15 +35,16 @@
     float b = svred(pg_odd, a_v);
 
     return Grid::ComplexF(a, b);
+*/
 
-/* LD2: tested, working
+// LD2: tested, working
     svbool_t pg2 = acle<float>::pg2();
     typename acle<float>::vt2 a_v = svld2(pg2, in.v);
     typename acle<float>::pt a = (typename acle<float>::pt)svred(pg2, a_v.v0);
     typename acle<float>::pt b = (typename acle<float>::pt)svred(pg2, a_v.v1);
 
     return Grid::ComplexF(a, b);
-*/
+
   }
 
   //Real float Reduce
@@ -59,7 +61,7 @@
   //Complex double Reduce
   template <>
   inline Grid::ComplexD Reduce<Grid::ComplexD, vecd>::operator()(const vecd &in){
-
+/*
     svbool_t pg1 = acle<double>::pg1();
     svbool_t pg_even = acle<double>::pg_even();
     svbool_t pg_odd  = acle<double>::pg_odd();
@@ -68,15 +70,15 @@
     double b = svred(pg_odd, a_v);
 
     return Grid::ComplexD(a, b);
+*/
 
-/* LD2: tested, working
+// LD2: tested, working
     svbool_t pg2 = acle<double>::pg2();
     typename acle<double>::vt2 a_v = svld2(pg2, in.v);
     typename acle<double>::pt a = (typename acle<double>::pt)svred(pg2, a_v.v0);
     typename acle<double>::pt b = (typename acle<double>::pt)svred(pg2, a_v.v1);
 
     return Grid::ComplexD(a, b);
-*/
   }
 
   //Real double Reduce

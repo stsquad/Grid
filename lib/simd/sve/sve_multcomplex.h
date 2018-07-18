@@ -15,8 +15,13 @@
       typename acle<T>::vt b_v = svld1(pg1, b.v);
 
       // using FCMLA
+      // FIXME
       typename acle<T>::vt r_v = svcmla_x(pg1, z_v, a_v, b_v, 90);
       r_v = svcmla_x(pg1, r_v, a_v, b_v, 0);
+
+      //typename acle<T>::vt r_v = svcmla_z(pg1, z_v, a_v, b_v, 90);
+      //r_v = svcmla_z(pg1, r_v, a_v, b_v, 0);
+
 
       svst1(pg1, out.v, r_v);
 
