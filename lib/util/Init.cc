@@ -51,9 +51,9 @@ Author: paboyle <paboyle@ph.ed.ac.uk>
 #include <Grid/util/CompilerCompatible.h>
 
 #if defined(__ARM_FEATURE_SVE)
+#include <arm_sve.h>
 #if defined(SVE_QEMU)
 #pragma message("Compiling for qemu")
-#include <arm_sve.h>
 #include <sys/prctl.h>
 #endif
 #endif
