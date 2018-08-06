@@ -158,22 +158,11 @@ void Tester(const functor &func)
 
   extract<vec,scal>(v_result,result);
 
-  std::cout << GridLogMessage << " " << func.name() << std::endl;
-
-  std::cout << GridLogDebug << v_input1 << std::endl;
-  std::cout << GridLogDebug << v_input2 << std::endl;
-  std::cout << GridLogDebug << v_result << std::endl;
-
   int ok=0;
   for(int i=0;i<Nsimd;i++){
     if ( abs(reference[i]-result[i])>1.0e-6){
-      std::cout<<GridLogMessage<< "*****" << std::endl;
-      std::cout<<GridLogMessage<< "["<<i<<"] "<< abs(reference[i]-result[i]) << " " <<reference[i]<< " " << result[i]<<std::endl;
       ok++;
     }
-  }
-  if ( ok==0 ) {
-    std::cout<<GridLogMessage << " OK!" <<std::endl;
   }
   assert(ok==0);
 }
